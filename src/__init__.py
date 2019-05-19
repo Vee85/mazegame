@@ -1,0 +1,226 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#  __init__.py
+#  
+#  Copyright 2019 Valentino Esposito <valentinoe85@gmail.com>
+#  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
+#  
+#
+
+
+import os
+from pygame import Rect
+import pygame.locals as pyloc
+import numpy as np
+
+MAIN_DIR = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
+
+#frame per second, time per frame
+FPS = 30
+TPF = 1 / FPS
+
+#custom pygame events
+ENTERDOOREVENT = pyloc.USEREVENT
+TAKEKEYEVENT = pyloc.USEREVENT + 1
+DEATHEVENT = pyloc.USEREVENT + 2
+ONCLICKEVENT = pyloc.USEREVENT + 3
+ENTERINGEVENT = pyloc.USEREVENT + 4
+EXITINGEVENT = pyloc.USEREVENT + 5
+
+
+def checksign(x):
+    if x == 0:
+        return 0
+    elif x > 0:
+        return 1
+    else:
+        return -1
+
+def pairextractor(iterable):
+    if len(iterable) % 2 != 0:
+        raise ValueError("iterable length is not even, cannot extract pairs")
+    for i, el in enumerate(iterable):
+        if i % 2 == 0:
+            x = el
+        else:
+            y = el
+            yield [x, y]
+
+def rectdistance(rra, rrb):
+    apos = np.array([rra.centerx, rra.centery])
+    bpos = np.array([rrb.centerx, rrb.centery])
+    return apos - bpos
+    
+
+class PosManager:
+    #unit is pixel
+    SIZE_X = 1000
+    SIZE_Y = 1000
+    MARGIN_X = 20
+    MARGIN_Y = 20
+
+    @staticmethod
+    def screen_size():
+        return PosManager.SIZE_X, PosManager.SIZE_Y
+
+    @staticmethod
+    def argspar(pp):
+        if isinstance(pp[0], (tuple, list, np.ndarray)):
+            xx = pp[0][0]
+            yy = pp[0][1]
+        else:
+            xx = pp[0]
+            yy = pp[1]
+        return xx, yy
+
+    @staticmethod
+    def postopix(xoff, yoff, *pp):
+        res = [0] * 2
+        xx, yy = PosManager.argspar(pp)
+        xx = xx - (xoff * 1000)
+        yy = yy - (yoff * 1000)
+        res[0] = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
+        res[1] = round(((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)) + PosManager.MARGIN_Y)
+        return res
+    
+    @staticmethod
+    def sizetopix(*pp):
+        res = [0] * 2
+        xx, yy = PosManager.argspar(pp)
+        res[0] = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_Y))
+        res[1] = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        return res
+
+    @staticmethod
+    def recttopix(xoff, yoff, rr):
+        pos = PosManager.postopix(xoff, yoff, rr.x, rr.y)
+        sz = PosManager.sizetopix(rr.width, rr.height)
+        return Rect(pos[0], pos[1], sz[0], sz[1])
+
+
+class FlRect:
+    def __init__(self, x, y, w, h):
+        self._x = x
+        self._y = y
+        self._w = w
+        self._h = h
+
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, value):
+        self._x = value
+    
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        self._y = value
+    
+    @property
+    def width(self):
+        return self._w
+
+    @width.setter
+    def width(self, value):
+        self._w = value
+
+    @property
+    def height(self):
+        return self._h
+
+    @height.setter
+    def height(self, value):
+        self._h = value
+
+    @property
+    def top(self):
+        return self._y
+
+    @top.setter
+    def top(self, value):
+        self._y = value
+
+    @property
+    def bottom(self):
+        return self._y + self._h
+
+    @bottom.setter
+    def bottom(self, value):
+        self._y = value - self._h
+
+    @property
+    def left(self):
+        return self._x
+
+    @left.setter
+    def left(self, value):
+        self._x = value
+
+    @property
+    def right(self):
+        return self._x + self._w
+
+    @right.setter
+    def right(self, value):
+        self._x = value - self._w
+
+    @property
+    def centerx(self):
+        return self._x + (self._w / 2)
+
+    @centerx.setter
+    def centerx(self, value):
+        self._x = value - (self._w / 2)
+
+    @property
+    def centery(self):
+        return self._y + (self._h / 2)
+
+    @centery.setter
+    def centery(self, value):
+        self._h = value - (self._h / 2)
+
+    def __repr__(self):
+        return f"<FlRect({self._x}, {self._y}, {self._w}, {self._h})>"
+
+    def getRect(self):
+        return Rect(round(self._x), round(self._y), round(self._w), round(self._h))
+
+    def move(self, *off):
+        if isinstance(off[0], (tuple, list, np.ndarray)):
+            xx = off[0][0]
+            yy = off[0][1]
+        else:
+            xx = off[0]
+            yy = off[1]
+        return FlRect(self._x + xx, self._y + yy, self._w, self._h)
+
+    def colliderect(self, other):
+        boolx = (self.right - other.left) * (other.right - self.left) > 0
+        booly = (self.bottom - other.top) * (other.bottom - self.top) > 0
+        return boolx and booly
+
+    def contains(self, other):
+        boolx = (self.right >= other.right) and (self.left < other.left)
+        booly = (self.bottom >= other.bottom) and (self.top < other.top)
+        return boolx and booly

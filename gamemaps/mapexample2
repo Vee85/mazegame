@@ -1,0 +1,11 @@
+#number of rooms
+NR 1
+
+#rooms
+R 0
+  W 0 950 400 50
+  W 300 500 100 100
+
+#start room and initial coordinates of cursor
+IR 0
+IP 100 600
