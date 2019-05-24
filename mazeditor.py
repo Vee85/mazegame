@@ -38,6 +38,8 @@ from pygame import sprite
 import pygame.locals as pyloc
 import tkinter as tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+from tkinter import messagebox
+
 import threading
 
 import src
@@ -175,13 +177,25 @@ class App(tk.Tk):
 
         self.title("Maze Editor")
         self.newbutton = tk.Button(self, text="New", command=self.newgame)
-        self.newbutton.pack(side="top")
+        self.newbutton.grid(row=0, column=0, sticky="ew")
 
         self.loadbutton = tk.Button(self, text="Load", command=self.loadgame)
-        self.loadbutton.pack(side="top")
+        self.loadbutton.grid(row=0, column=1, sticky="ew")
 
         self.savebutton = tk.Button(self, text="Save", command=self.writegame)
-        self.savebutton.pack(side="top")
+        self.savebutton.grid(row=0, column=2, sticky="ew")
+
+        self.addroombutton = tk.Button(self, text="Add room", command=self.addroom)
+        self.addroombutton.grid(row=1, column=0, sticky="ew")
+
+        self.delroombutton = tk.Button(self, text="Delete room", command=self.delroom)
+        self.delroombutton.grid(row=1, column=1, sticky="ew")
+
+        self.nextroombutton = tk.Button(self, text="Show next room", command=lambda : self.showroom(1))
+        self.nextroombutton.grid(row=2, column=0, sticky="ew")
+
+        self.prevroombutton = tk.Button(self, text="Show previous room", command=lambda : self.showroom(-1))
+        self.prevroombutton.grid(row=2, column=1, sticky="ew")
 
         thr = threading.Thread(target=self.pygameloop)
         thr.start()
@@ -219,6 +233,28 @@ class App(tk.Tk):
                 sf.write("\nIR " + str(self.maze.firstroom) + '\n')
                 sf.write(self.maze.cursor.reprline() + '\n')
 
+    def addroom(self):
+        """Add a new room to the maze"""
+        if self.maze is not None:
+            rid = len(self.maze.rooms)
+            self.maze.rooms = np.append(self.maze.rooms, src.mzgrooms.Room(rid, False))
+
+    def delroom(self):
+        """Delete the shown room from the maze"""
+        if self.maze is not None:
+            answer = messagebox.askyesno("WARNING", "You are deleting the shown Room.\nThere is no going back.\nAre you sure?")
+            if answer:
+                self.maze.rooms = np.delete(self.maze.rooms, self.maze.croom.roompos)
+                self.maze.croom = self.maze.rooms[0]
+                self.maze.draw(self.pygscreen)
+
+    def showroom(self, off):
+        if self.maze is not None:
+            idx = self.maze.croom.roompos + off
+            if 0 <= idx < len(self.maze.rooms):
+                self.maze.croom = self.maze.rooms[idx]
+                self.maze.draw(self.pygscreen)
+
     def blockdialog(self, slblock):
         """Open a BlockAction, slblock is the block affected"""
         dlg = BlockActions(self, slblock)
@@ -240,19 +276,19 @@ class App(tk.Tk):
                         self.maze.draw(self.pygscreen)
                     else:
                         print(event.action)
-                elif event.type == pyloc.MOUSEBUTTONDOWN:
+                elif event.type == pyloc.MOUSEBUTTONDOWN and self.maze is not None:
                     self.grabbed = self.grabblock(event.pos)
                     if self.grabbed is not None and event.button == 3:
                         if len(self.grabbed.actionmenu) > 0:
                             self.blockdialog(self.grabbed)
-                elif event.type == pyloc.MOUSEBUTTONUP:
+                elif event.type == pyloc.MOUSEBUTTONUP and self.maze is not None:
                     self.maze.draw(self.pygscreen)
                     self.grabbed = None
                     for scb in self.maze.scrollareas.sprites():
                         if scb.rect.collidepoint(event.pos):
                             scb.scrolling_event()
                             break
-                elif event.type == pyloc.MOUSEMOTION:
+                elif event.type == pyloc.MOUSEMOTION and self.maze is not None:
                     if self.grabbed is not None:
                         if event.buttons == (1, 0, 0):
                             pressed = pygame.key.get_pressed()
