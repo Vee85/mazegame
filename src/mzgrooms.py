@@ -22,9 +22,22 @@
 #  
 #  
 
+"""Contains container classes of the fundamental blocks, used to build the maze.
+
+Room -- the block container. It keeps all the blocks of a single room of the maze,
+in separate sprite Groups according to their type, with functions to recover
+useful information from the blocks.
+
+Maze -- the room container. It's the maze, it manages the rooms, the player,
+function to load a map and provides the main loop for the game and other useful functions
+to manage the game.
+"""
+
+
 import sys
 import os
 import re
+import io
 import numpy as np
 import pygame
 
@@ -32,7 +45,18 @@ from src.mzgblocks import *
 
 
 class Room:
+    """the block container. Represent a room of the maze.
+
+    Instances of this class (and their methods) should be managed by the Maze class.
+    """
+
     def __init__(self, rp, isgame):
+        """Initialization:
+        
+        rp -- id of the room in the Maze, identify the position of the room in a list
+        isgame -- boolean, if True the room is created by the game,
+        if False is created by the editor
+        """
         self.isgame = isgame
         self.roompos = rp
         self.allblocks = sprite.Group()
@@ -45,6 +69,7 @@ class Room:
         self.screens = np.array([1, 1])
 
     def addelem(self, lstpar):
+        """Parse a text line (lstpar argument) to create the corresponding block"""
         bpos = list(map(int, lstpar[1:3]))
         if lstpar[0] in ['W', 'L', 'T']:
             bsize = list(map(int, lstpar[3:5]))
@@ -85,7 +110,13 @@ class Room:
         if maxy > self.screens[1]:
             self.screens[1] = maxy
 
-    def screenfrac(self, refblock):
+    def offscreen(self, refblock):
+        """Return the offset of the screen of a reference block 'refblock'.
+
+        Rooms are bigger than the screen so when player moves the camera must follow it.
+        The offset of the screen is a 2-length np.array contaning by how many "screen"
+        the current block position is far from the top left corner of the room. 
+        """
         ix = refblock.aurect.x // 1000
         iy = refblock.aurect.y // 1000
         if ix < self.screens[0] and iy < self.screens[1]:
@@ -94,19 +125,28 @@ class Room:
             raise RuntimeError
 
     def isoffvalid(self, off):
+        """Check if the offset is valid, raise a RuntimeError if not.
+
+        off -- the offset, a 2-length container for x and y offset (see offscreen method)
+        Both numbers must be positive and smaller than the total size of the room.
+        """
         if not (0 <= off[0] < self.screens[0] and 0 <= off[1] < self.screens[1]):
             raise RuntimeError
 
     def hoveringsprites(self):
+        """Return a list with all the block sprites which can be crossed trought by the player"""
         return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites()
 
-    def alldestinations(self):
-        return [dd.destination for dd in self.doors.sprites()]
-
     def alldoorsid(self):
+        """Return a list with all the door id"""
         return [dd._id for dd in self.doors.sprites()]
 
+    def alldestinations(self):
+        """Return a list with all the door id destinations"""
+        return [dd.destination for dd in self.doors.sprites()]
+
     def getdoorref(self, idx):
+        """Return the door sprite corresponding to the given id"""
         ref = None
         for dd in self.doors.sprites():
             if dd._id == idx:
@@ -115,39 +155,65 @@ class Room:
         return ref
 
     def update(self, xoff, yoff):
+        """Update all sprite blocks"""
         self.allblocks.update(xoff, yoff)
 
     def draw(self, sface):
+        """Draw all sprite blocks"""
         self.allblocks.draw(sface)
 
     def empty(self):
+        """Kill all sprite blocks"""
         for bb in self.allblocks.sprites():
             bb.kill()
 
 
 class Maze:
+    """the room container. Represent the top level class of the game.
+
+    Not only Maze holds all the rooms, it also provides the method to move the sprites
+    and to play. It's created by the menu TopLev interface.
+    """
+    
     BGCOL = (0, 0, 0)
 
-    def __init__(self, fn, isgame=True, loadmap=True):
+    def __init__(self, fn, isgame=True):
+        """Initialization:
+        
+        fn -- filename of the map to be load and used.
+        isgame -- boolean, if True the maze is created by the game,
+        if False is created by the editor
+        """
         self.isgame = isgame
         self.filename = fn
+        self.rooms = None
         self.cursor = None
         self.croom = None
         self.cpp = None
         self.firstroom = None
-        if loadmap:
-            self.rooms = None
-            self.initcounters()
-            self.maploader()
-        else:
-            self.rooms = np.empty(shape=1, dtype=Room)
+        self.initcounters()
+        self.maploader()
 
     def initcounters(self):
+        """Reset the id generators of the block types which have an id"""
         Door.initcounter()
         Key.initcounter()
+        EnemyBot.initcounter()
+        Marker.initcounter()
     
     def maploader(self):
-        with open(self.filename) as fob:
+        """Load a map, parsing the textfile or creating the default (almost empty) map"""
+        if self.filename is not None:
+            streamer = open(self.filename)
+        else:
+            streamer = io.StringIO("NR 1\n\
+                                    R 0\n\
+                                    W 0 100 100 50\n\
+                                    IR 0\n\
+                                    IP 50 50\n"
+                                    )
+        
+        with streamer as fob:
             #searching the first valid line: map dimension
             for fl in fob:
                 sfl = fl.strip()
@@ -182,10 +248,12 @@ class Maze:
         self.croom = self.rooms[self.firstroom]
 
     def initcursor(self, cpos):
+        """Create and initialize the player"""
         self.cursor = Character(cpos)
         self.cursor.setforcefield(0.0, 200.0)
 
     def scrollscreen(self, screen):
+        """Draw the next portion of the room on the screen"""
         try:
             self.croom.isoffvalid(self.cpp)
         except RuntimeError:
@@ -198,6 +266,11 @@ class Maze:
         self.croom.draw(screen)
 
     def crossdoor(self, doorid, destination):
+        """Enter in a door: player position is reset to the destination door.
+
+        doorid -- the id of the door in which the player is entering
+        destination -- the id of the door from which the player exit
+        """
         roomidx = self.croom.roompos
         if destination < 0:
             sys.exit("You win!")
@@ -212,6 +285,11 @@ class Maze:
                 break
 
     def keytaken(self, keyid, dooridlist):
+        """Take a key and open the corresponding doors.
+
+        keyid -- the id of the key taken by the player
+        dooridlist -- the list of all the doors
+        """
         blitnow = []
         for rr in self.rooms:
             for doorid in dooridlist:
@@ -223,6 +301,7 @@ class Maze:
         return blitnow
 
     def mazeloop(self, screen):
+        """The game main loop. screen is the pygame.display"""
         enterroom = True
         dying = False
         clock = pygame.time.Clock()
@@ -246,7 +325,7 @@ class Maze:
                     return
             
             if enterroom:
-                self.cpp = self.croom.screenfrac(self.cursor)
+                self.cpp = self.croom.offscreen(self.cursor)
                 self.cursor.update(self.cpp[0], self.cpp[1])
                 enterroom = False
                 self.scrollscreen(screen)

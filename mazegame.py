@@ -22,6 +22,13 @@
 #  
 #  
 
+"""Main script to start the game. To be used as an executable.
+
+This file initialize the pygame library and loads the other
+relevant files for the game.
+"""
+
+
 import sys
 import os
 import numpy as np

@@ -22,6 +22,17 @@
 #  
 #  
 
+"""Script to test the validity of a map.
+
+Use this file as executable to test a map. This tester make use of unittest
+to perform a set of validation checks on a map, searching for discrepancies in the file
+which could make the map invalid, like a map which cannot be solved.
+The tester is not guaranteed to identify all possible problems.
+The map designer could also create peculiar maps which are still solvable
+but do not pass this test.
+"""
+
+
 import unittest
 
 import sys
@@ -39,28 +50,36 @@ pygame.display.set_mode(src.PosManager.screen_size())
 
 
 class TestMaze(unittest.TestCase):
+    """Collection of tests for the map
+
+    Child of unittest.TestCase. See each test for a short description.
+    """
     game = None
 
     def getdoorlist(self):
+        """Return the list of all the doors of the map"""
         doorlist = []
         for rr in self.game.rooms:
             doorlist.extend(rr.doors.sprites())
         return doorlist
 
     def getkeylist(self):
+        """Return the list of all the keys of the map"""
         keylist = []
         for rr in self.game.rooms:
             keylist.extend(rr.keys.sprites())
         return keylist
 
     def test_inipos(self):
+        """Test that the the character initial position is inside the room"""
         try:
-            self.game.croom.screenfrac(self.game.cursor)
+            self.game.croom.offscreen(self.game.cursor)
         except RuntimeError:
             ermess = "character initial position is outside the room!"
             self.fail(ermess)
 
     def test_blocksoverlapping(self):
+        """Test if there are overlappig blocks."""
         for rr in self.game.rooms:
             albl = rr.allblocks.sprites()
             if self.game.firstroom == rr.roompos:
@@ -71,6 +90,12 @@ class TestMaze(unittest.TestCase):
                     self.assertFalse(bl.aurect.colliderect(obl.aurect), txtmess)
     
     def test_doors(self):
+        """Test if doors are working correctly:
+        - door not leading to themselfs
+        - door not leading to more than another door
+        - doors works biridectionally
+        - both the corresponding door are locked or opened
+        """
         doorlist = self.getdoorlist()
         for door in doorlist:
             if door.destination >= 0:
@@ -88,6 +113,12 @@ class TestMaze(unittest.TestCase):
                 self.assertTrue(door.locked == targetdoor[0][2], cmessd)
 
     def test_keys(self):
+        """Test if keys are working correctly:
+        - door locked but there is no key
+        - key does not open any door
+        - key opens two not corresponding doors
+        - key opens more than two doors
+        """
         doorlist = self.getdoorlist()
         keylist = self.getkeylist()
 

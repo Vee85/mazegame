@@ -22,6 +22,13 @@
 #  
 #  
 
+"""Main script to create the game editor. Also contains dedicated classes.
+
+Use this file as executable to start the editor.
+The editor uses a tkinter interface to provide the commands to create the map,
+and a pygame display to manipulate the blocks.
+"""
+
 
 import sys
 import os
@@ -40,27 +47,53 @@ from src.mzgblocks import Block
 GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 
 #userevent actions
-ACT_NEW = 0
-ACT_LOAD = 1
-ACT_SCROLL = 2  #need keywords xoff, yoff
-ACT_DELETEBLOCK = 3  #need keyword todelete
+ACT_LOAD = 0
+ACT_SCROLL = 1  #need keywords xoff, yoff
+ACT_DELETEBLOCK = 2  #need keyword todelete
 
 
 class ScrollBlock(Block):
+    """An invisible block, used to define a clickable area to move the camera.
+
+    Children of Block. Can be of any size but not resizable. Used to emit
+    a scrolling event to move the camera and draw the next section of the room.
+    Used only by the editor. 
+    """
+
+    resizable = False
+    
     def __init__(self, pos, rsize, direction):
+        """Initialization:
+        
+        pos -- two-length list with x, y coordinates of top-left corner of the rectangle
+        rsize -- two-length list with width and height of the rectangle
+        direction -- two-length list with x and y offset: by how much "screen" the camera must be moved
+        e.g. [0, 1] to move by one screen down
+        """
         super(ScrollBlock, self).__init__(pos, rsize)
         self.image.fill((0, 0, 0))
         self.image.set_colorkey((0, 0, 0))
         self.direction = direction
 
     def scrolling_event(self):
+        """Post a scrolling event into the pygame.event queue"""
         scrlev = pygame.event.Event(pyloc.USEREVENT, action=ACT_SCROLL, xoff=self.direction[0], yoff=self.direction[1])
         pygame.event.post(scrlev)
 
 
 class DrawMaze(Maze):
-    def __init__(self, fn, loadmap):
-        super(DrawMaze, self).__init__(fn, False, loadmap)
+    """The room container with additions for the editor
+
+    child of mzgrooms.Maze. Uses predefined ScrollBlocks to scroll the room
+    with the mouse. It's created by the App interface.
+    """
+    
+    def __init__(self, fn):
+        """Initialization:
+        
+        fn -- filename of the map to be load and used.
+        """
+        super(DrawMaze, self).__init__(fn, False)
         self.cpp = np.array([0, 0])
         self.scrollareas = pygame.sprite.Group()
         self.scrollareas.add(ScrollBlock([0, -20], [1000, 20], [0, -1]))
@@ -69,6 +102,7 @@ class DrawMaze(Maze):
         self.scrollareas.add(ScrollBlock([-20, 0], [20, 1000], [-1, 0]))
 
     def draw(self, screen):
+        """Draw the screen"""
         screen.fill(self.BGCOL)
         self.croom.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen)
@@ -81,6 +115,7 @@ class DrawMaze(Maze):
             screen.blit(self.cursor.image, self.cursor.rect)
 
     def getallblocks(self, iroom):
+        """Return a list of all the sprites in the current room"""
         markers = []
         for bot in iroom.bots.sprites():
             markers.extend(bot.getmarkers())
@@ -88,7 +123,18 @@ class DrawMaze(Maze):
 
 
 class BlockActions(tk.Toplevel):
+    """Dialog interface to allow actions on a block on the screen.
+
+    Child of tkinter.Toplevel
+    It open a dialog with all the actions available for a block type
+    Its method are binded as callbacks for the displayed buttons.
+    """
     def __init__(self, parent, refblock):
+        """Initialization:
+        
+        parent -- parent widget
+        refblock -- block on which the action is performed
+        """
         super(BlockActions, self).__init__(parent)
         self.refblock = refblock
         self.title("Edit Block")
@@ -107,7 +153,20 @@ class BlockActions(tk.Toplevel):
 
 
 class App(tk.Tk):
+    """the editor container. Represent the top level class, contaning the editor.
+
+    Child of tkinter.Tk
+    It uses threading to allow the tkinter GUI and the pygame display and mainloop to work
+    at the same time.
+    pygameloop method is the main loop for the pygame part, other methods of this class
+    are called inside the main loop.
+    """
+    
     def __init__(self, pygscreen):
+        """Initialization:
+
+        pygscreen -- the pygame.display surface
+        """
         super(App, self).__init__()
         self.pygscreen = pygscreen
         self.grabbed = None
@@ -115,7 +174,7 @@ class App(tk.Tk):
         self.mazefile = None
 
         self.title("Maze Editor")
-        self.newbutton = tk.Button(self, text="New", command=self.sendtopyg)
+        self.newbutton = tk.Button(self, text="New", command=self.newgame)
         self.newbutton.pack(side="top")
 
         self.loadbutton = tk.Button(self, text="Load", command=self.loadgame)
@@ -128,20 +187,29 @@ class App(tk.Tk):
         thr.start()
 
     def on_closing(self):
+        """Post the quit event to the pygame system event and close the tkinter GUI"""
         closeev = pygame.event.Event(pyloc.QUIT)
         pygame.event.post(closeev)
         self.destroy()
 
+    def newgame(self):
+        """Open the default initial map to create a new map"""
+        self.maze = DrawMaze(None)
+        newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_LOAD)
+        pygame.event.post(newev)
+
     def loadgame(self):
+        """Open the a map to edit it"""
         mazefile = askopenfilename(initialdir=GAME_DIR, title="Load file", filetypes=[("all files","*")])
-        if mazefile is not None:
-            self.maze = DrawMaze(mazefile, True)
+        if len(mazefile) > 0:
+            self.maze = DrawMaze(mazefile)
             newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_LOAD)
             pygame.event.post(newev)
 
     def writegame(self):
+        """Save the current map in a file, ready to be played"""
         mazefile = asksaveasfilename(initialdir=GAME_DIR, title="Save file", filetypes=[("all files","*")])
-        if mazefile is not None:
+        if len(mazefile) > 0:
             with open(mazefile, 'w') as sf:
                 sf.write(f"NR {str(len(self.maze.rooms))}\n")
                 for rm in self.maze.rooms:
@@ -152,9 +220,11 @@ class App(tk.Tk):
                 sf.write(self.maze.cursor.reprline() + '\n')
 
     def blockdialog(self, slblock):
+        """Open a BlockAction, slblock is the block affected"""
         dlg = BlockActions(self, slblock)
 
     def pygameloop(self):
+        """the editor main loop for the pygame part"""
         while True:
             for event in pygame.event.get():
                 if event.type == pyloc.QUIT:
@@ -202,11 +272,8 @@ class App(tk.Tk):
                             
             pygame.display.update()
             
-    def sendtopyg(self):
-        newev = pygame.event.Event(pyloc.USEREVENT, action=339)
-        pygame.event.post(newev)
-
     def grabblock(self, mpos):
+        """grab a block to perform basic actions on it (moving, resizing, or open the BlockActions dialog)"""
         bll = self.maze.getallblocks(self.maze.croom)
         if self.maze.firstroom == self.maze.croom.roompos:
             bll.append(self.maze.cursor)

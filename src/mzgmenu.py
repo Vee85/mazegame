@@ -22,6 +22,18 @@
 #  
 #
 
+"""Contains classes to build the game menu as a GUI in pygame itself and start the game.
+
+PgWidget -- the base class for the widget. Provides basic event handler common to all widget.
+All Widget are clickable.
+
+PgLabel -- A label widget. Holds a text.
+
+PgButton -- A button widget. Holds a text, which is highlighted when the mouse enters
+in the surface area.
+
+TopLev -- The class holding the menu, connecting the callbacks and starting the game.
+"""
 
 import sys
 import os
@@ -38,11 +50,26 @@ GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 
 
 class PgWidget(sprite.Sprite, src.PosManager):
-    '''Base class for all widgets do not use it directly, use its children'''
+    """Base class for all widgets do not use it directly, use its children.
+
+    Keep tracks of all its instances, and provide common methods and event submitters
+    using the pygame event system.
+    enterevent -- emitted when the mouse enters the widget surface
+    exitevent -- emitted when the mouse leaves the widget surface
+    onclickevent -- emitted when a mouse button is clicked and the mouse is inside the widget surface
+    connect -- method to connect a callback function to an event
+    Most of its methods require a sscr argument: the pygame.display surface
+    """
+    
     _idcounter = count(0)
     allwidgets = sprite.Group()
     
     def __init__(self, surf, pos):
+        """Initialization:
+        
+        surf -- a pygame.Surface, shown by the widget
+        pos -- 2-length container, x y coordinates of the top-left corner of the surface 
+        """
         super(PgWidget, self).__init__()
         self._id = next(self._idcounter)
         self.update = False
@@ -58,46 +85,63 @@ class PgWidget(sprite.Sprite, src.PosManager):
 
     @staticmethod
     def initcounter():
+        """Reset the id generators of the widgets"""
         PgWidget._idcounter = count(0)
 
     @staticmethod
     def widget_list(shownonly=True):
+        """Return a list all widget. If showonly is true, returns the widged displayed on the screen only"""
         if shownonly:
             return [ww for ww in PgWidget.allwidgets.sprites() if ww._shown]
         else:
             return PgWidget.allwidgets.sprites()
 
     def show(self, sscr, loadscreen=False):
-        #loadscreen useful for child classes who override this method
-        #ssrc must be the screen surface
+        """Blit the widget.
+        
+        loadscreen -- boolean, useful for child classes who override this method
+        """
         sscr.blit(self.image, self.pos)
         self._shown = True
 
     def wupdate(self, sscr):
+        """Update the widget"""
         if self.update:
             self.show(sscr, False)
             self.update = False
 
     @staticmethod
     def hideall(sscr, bgc):
+        """Hide a screen, filling it with the bgc color
+
+        bgc -- 3-length tuple of list, a RGB color
+        """
         #ssrc must be the screen surface
         sscr.fill(bgc)
         for ww in PgWidget.widget_list():
             ww._shown = False
     
     def enter_event(self):
+        """Post the enter event to the pygame.event system"""
         newev = pygame.event.Event(src.ENTERINGEVENT, key_id=self._id)
         pygame.event.post(newev)
 
     def exit_event(self):
+        """Post the exit event to the pygame.event system"""
         newev = pygame.event.Event(src.EXITINGEVENT, key_id=self._id)
         pygame.event.post(newev)
 
     def onclick_event(self):
+        """Post the onclick event to the pygame.event system"""
         newev = pygame.event.Event(src.ONCLICKEVENT, key_id=self._id)
         pygame.event.post(newev)
 
     def connect(self, eventtype, callback):
+        """Connect a callback to an event type
+
+        eventtype -- numeric costant corresponding to an event
+        callback -- a callable
+        """
         conn = (eventtype, callback)
         self.connectedcalls.append(conn)
 
@@ -107,7 +151,22 @@ class PgWidget(sprite.Sprite, src.PosManager):
 
 
 class PgLabel(PgWidget):
-    def __init__(self, labtext, pos, textheight, font=None, textcolor=(255, 255, 255)):
+    """A Label, holding some text
+
+    Child of PgWidget. Creates a text surface.
+    """
+
+    TEXTCOL = (255, 255, 255)
+    
+    def __init__(self, labtext, pos, textheight, font=None, textcolor=self.TEXTCOL):
+        """Initialization:
+        
+        labtext -- text of the label
+        pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
+        textheight -- height of the text in pixels
+        font -- the used font (default none)
+        textcolor -- 3-length tuple of list, a RGB color (default white)
+        """
         self.text = labtext
         self.font = font
         mfont = pygame.font.Font(self.font, self.sizetopix(0, textheight)[1])
@@ -116,10 +175,23 @@ class PgLabel(PgWidget):
 
 
 class PgButton(PgWidget):
+    """A button, holding some text, is highlighted when the mouse enters in the surface
+
+    Child of PgWidget. Creates a text surface.
+    """
+    
     BGCOL = (0, 0, 0)
     HOVERCOL = (100, 100, 100)
     TEXTCOL = (255, 255, 255)
+    
     def __init__(self, buttext, pos, textheight, font=None):
+        """Initialization:
+        
+        buttext -- text of the button
+        pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
+        textheight -- height of the text in pixels
+        font -- the used font (default none)
+        """
         self.text = buttext
         self.font = font
         self.textheight = textheight
@@ -127,6 +199,7 @@ class PgButton(PgWidget):
         super(PgButton, self).__init__(wgsurf, self.postopix(0, 0, pos))
 
     def drawbutton(self, bgc):
+        """creates the pygame.Surface instance with the text of the button"""
         mfont = pygame.font.Font(self.font, self.sizetopix(0, self.textheight)[1])
         surftext = mfont.render(self.text, True, self.TEXTCOL)
         surfbutton = pygame.Surface([surftext.get_width(), surftext.get_height()])
@@ -135,19 +208,30 @@ class PgButton(PgWidget):
         return surfbutton
 
     def switchbgcol(self, bgc):
+        """switch toe color of the background of the surface (for highlight when the mouse enters)"""
         self.image = self.drawbutton(bgc)
         self.update = True
 
     def show(self, ssrc, loadscreen=True):
+        """override base method, draw the widget"""
         if loadscreen:
             self.switchbgcol(self.BGCOL)
         super(PgButton, self).show(ssrc)
 
 
 class TopLev:
+    """the game container. Represent the top level class, contaning the menu and the game.
+
+    menuloop method is the main loop, other methods of this class are called inside the main loop.
+    """
+    
     BGCOL = (0, 0, 0)
     
     def __init__(self, screen):
+        """Initialization:
+
+        screen -- the pygame.display surface
+        """
         self.fn = None
         self.mlstop = False
         self.screen = screen
@@ -177,10 +261,12 @@ class TopLev:
         self.backtomm.connect(src.EXITINGEVENT, lambda : self.backtomm.switchbgcol(PgButton.BGCOL))
         
     def selectgame(self, filename):
+        """Set the map filename"""
         self.fn = os.path.join(GAME_DIR, filename)
         self.mlstop = True
 
     def mainpage(self):
+        """"Show the main menu page"""
         PgWidget.hideall(self.screen, self.BGCOL)
         self.title.show(self.screen)
         self.newbutt.show(self.screen)
@@ -188,6 +274,7 @@ class TopLev:
         self.quitbutt.show(self.screen)
 
     def menunewgame(self):
+        """Show the menu page to choose a map"""
         PgWidget.hideall(self.screen, self.BGCOL)
         self.ngtitle.show(self.screen)
         self.backtomm.show(self.screen)
@@ -204,6 +291,7 @@ class TopLev:
             gamebutt.show(self.screen)
 
     def menuloop(self):
+        """The main loop for the menu and the game"""
         self.mainpage()
 
         while True:

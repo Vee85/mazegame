@@ -22,6 +22,16 @@
 #  
 #
 
+"""mazegame is a 2D platform game, structured like a module. Read the README file for more details.
+
+The module relevant files are stored in the 'src' directory:
+__init__.py -- this file, containing general useful classes and constants.
+mzgblocks.py -- contains all classes defining the blocks, the fundamental elements of the game.
+mzgrooms.py -- contains the classes defining a room and the whole maze, with the main loop for the game.
+mzgmenu.py -- contains the PyWidget class and its children, to define GUI interface,
+    and the TopLev class which defines the game menu and the main loop for the GUI.
+"""
+
 
 import os
 from pygame import Rect
@@ -44,6 +54,7 @@ EXITINGEVENT = pyloc.USEREVENT + 5
 
 
 def checksign(x):
+    """Check the sign of the argument, returning 0 (x == 0), 1 (x > 0) or -1 (x < 0)"""
     if x == 0:
         return 0
     elif x > 0:
@@ -52,22 +63,25 @@ def checksign(x):
         return -1
 
 def pairextractor(iterable):
-    if len(iterable) % 2 != 0:
-        raise ValueError("iterable length is not even, cannot extract pairs")
+    """Take an iterable and generate pairs of its element in order"""
     for i, el in enumerate(iterable):
         if i % 2 == 0:
             x = el
         else:
             y = el
             yield [x, y]
-
-def rectdistance(rra, rrb):
-    apos = np.array([rra.centerx, rra.centery])
-    bpos = np.array([rrb.centerx, rrb.centery])
-    return apos - bpos
     
 
 class PosManager:
+    """Manage the screen coordinates and conversion from arbitrary unit to pixel
+
+    screen_size -- return screen resolution
+    postopix -- convert an absolute position
+    sizetopix -- convert sizes: size is an (x, y) pair
+        denoting x and y sizes of a rect
+    recttopix -- convert a pygame.Rect instance
+    """
+    
     #unit is pixel
     SIZE_X = 1000
     SIZE_Y = 1000
@@ -76,10 +90,12 @@ class PosManager:
 
     @staticmethod
     def screen_size():
+        """Returns screen resolution"""
         return PosManager.SIZE_X, PosManager.SIZE_Y
 
     @staticmethod
-    def argspar(pp):
+    def _argspar(pp):
+        """Parse the argument for other function, allowing variadics of two elements"""
         if isinstance(pp[0], (tuple, list, np.ndarray)):
             xx = pp[0][0]
             yy = pp[0][1]
@@ -90,8 +106,9 @@ class PosManager:
 
     @staticmethod
     def postopix(xoff, yoff, *pp):
+        """Converts an absolute position from arbitrary units to pixel units"""
         res = [0] * 2
-        xx, yy = PosManager.argspar(pp)
+        xx, yy = PosManager._argspar(pp)
         xx = xx - (xoff * 1000)
         yy = yy - (yoff * 1000)
         res[0] = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
@@ -100,21 +117,42 @@ class PosManager:
     
     @staticmethod
     def sizetopix(*pp):
+        """Converts size from arbitrary units to pixel units
+
+        Size is an (x, y) pair denoting x and y sizes of a rect
+        """
         res = [0] * 2
-        xx, yy = PosManager.argspar(pp)
+        xx, yy = PosManager._argspar(pp)
         res[0] = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_Y))
         res[1] = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
         return res
 
     @staticmethod
     def recttopix(xoff, yoff, rr):
+        """Converts a pygame.Rect or FlRect instance from arbitrary units to pixel units"""
         pos = PosManager.postopix(xoff, yoff, rr.x, rr.y)
         sz = PosManager.sizetopix(rr.width, rr.height)
         return Rect(pos[0], pos[1], sz[0], sz[1])
 
 
 class FlRect:
+    """Similar to pygame.Rect but uses float numbers.
+
+    The class stores internally only coordinates, width and height.
+    Other attributes are rendered through properties, with getter and setter:
+    x, y: coordinates of the top-left corner of the rectangle.
+    top, bottom: y coordinates of the top and bottom edges respectively.
+    left, right: x coordinates of the left and right edges respectively.
+    centerx, centery: coordinates of the centre of the rectangle.
+    width, height: self-explanatory. 
+    """
+    
     def __init__(self, x, y, w, h):
+        """Initialization:
+        
+        x, y - coordinates of top-left corner of the rectangle
+        w, h - width and height
+        """
         self._x = x
         self._y = y
         self._w = w
@@ -201,12 +239,15 @@ class FlRect:
         self._h = value - (self._h / 2)
 
     def __repr__(self):
+        """String representation of the class"""
         return f"<FlRect({self._x}, {self._y}, {self._w}, {self._h})>"
 
     def getRect(self):
+        """Return a pygame.Rect object with rounded coordinates"""
         return Rect(round(self._x), round(self._y), round(self._w), round(self._h))
 
     def move(self, *off):
+        """Equivalent to the 'move' method of pygame.Rect"""
         if isinstance(off[0], (tuple, list, np.ndarray)):
             xx = off[0][0]
             yy = off[0][1]
@@ -216,11 +257,23 @@ class FlRect:
         return FlRect(self._x + xx, self._y + yy, self._w, self._h)
 
     def colliderect(self, other):
+        """Equivalent to the 'colliderect' method of pygame.Rect"""
         boolx = (self.right - other.left) * (other.right - self.left) > 0
         booly = (self.bottom - other.top) * (other.bottom - self.top) > 0
         return boolx and booly
 
     def contains(self, other):
-        boolx = (self.right >= other.right) and (self.left < other.left)
-        booly = (self.bottom >= other.bottom) and (self.top < other.top)
+        """Equivalent to the 'contains' method of pygame.Rect"""
+        boolx = (self.right >= other.right) and (self.left <= other.left)
+        booly = (self.bottom >= other.bottom) and (self.top <= other.top)
         return boolx and booly
+
+    def distance(self, other):
+        """Calculate distance from another FlRect, using the center as reference.
+
+        returns a 2-length numpy array holding the x and y component of the distance.
+        """
+        apos = np.array([self.centerx, self.centery])
+        bpos = np.array([other.centerx, other.centery])
+        return apos - bpos
+
