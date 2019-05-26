@@ -73,7 +73,7 @@ class Block(sprite.Sprite, src.PosManager):
     '''
     
     resizable = True
-    actionmenu = ["delete"]
+    actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
     
     def __init__(self, pos, rsize, bg=None):
         """Initialization:
@@ -130,12 +130,31 @@ class Block(sprite.Sprite, src.PosManager):
             self.fillimage()
 
     def reprline(self):
-        """Return text line of the block in map file format (used to create a map by the editor
+        """Return text line of the block in map file format (used by the editor)
 
         This is a basic format holding a label and the PyRect values x, y, width, height.
         Is fine for basic blocks, more complex blocks need to override it with custom representation lines.
         """
         return f"  {self.label} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
+
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Return default text line for a new block in map file format (used by the editor)
+
+        Classmethod. *args are positional arguments, to be added to the list, and vary
+        from block type to block type. Defaults are:
+        - x, y coordinates of the top-left vertex of the rectangle.
+        Block types in need of a custom line override this method and may require a different
+        set of positional arguments.
+        """
+        if cls.__name__ == "Block":
+            raise RuntimeError("reprlinenew classmethod should not be called by a Block instance!")
+
+        lab = f"  {cls.label} " + " ".join(map(str, args))
+        if hasattr(cls, "rectsize"):
+            return lab + f" {cls.rectsize[0]} {cls.rectsize[1]}"
+        else:
+            return lab + " 100 50"
 
     def collidinggroup(self, group):
         """Return other sprites of a group colliding with this sprite"""
@@ -185,6 +204,11 @@ class Marker(Block):
         """Override method of base class. Markers do not need a text line"""
         pass
 
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Override method, Marker does not need a reprline"""
+        pass
+        
 
 class Wall(Block):
     """A solid wall of any size, can be used as floor, roof, or vertical wall.
@@ -221,7 +245,7 @@ class Ladder(Block):
         """
         super(Ladder, self).__init__(pos, rsize, self.BGIMAGE)
 
-        
+
 class Deadlyblock(Block):
     """A block (any size) which should not be touched. Is game over.
 
@@ -258,9 +282,9 @@ class Door(Block):
     """
     
     resizable = False
+    rectsize = [50, 50]
     label = 'D'
     _idcounter = count(0)
-    rectsize = [50, 50]
     LDOOR = pygame.image.load(os.path.join(IMAGE_DIR, "lockeddoor.png"))
     LOCKEDDOOR = pygame.transform.scale(LDOOR, src.PosManager.sizetopix(rectsize))
     ODOOR = pygame.image.load(os.path.join(IMAGE_DIR, "opendoor.png"))
@@ -319,6 +343,11 @@ class Door(Block):
         ilock = 1 if self.locked else 0
         return f"  {self.label} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
 
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Override method of base class, default line for Door"""
+        return f"  {cls.label} " + " ".join(map(str, args))
+
 
 class Key(Block):
     """A fixed size block, it represents a key to open a specific door.
@@ -333,9 +362,9 @@ class Key(Block):
     """
     
     resizable = False
+    rectsize = [50, 50]
     label = 'K'
     _idcounter = count(0)
-    rectsize = [50, 50]
     RAWIMKEY = pygame.image.load(os.path.join(IMAGE_DIR, "key.png"))
     IMKEY = pygame.transform.scale(RAWIMKEY, src.PosManager.sizetopix(rectsize))
 
@@ -379,7 +408,12 @@ class Key(Block):
     def reprline(self):
         """Override method of base class, adding custom informations"""
         return f"  {self.label} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
-        
+
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Override method of base class, default line for Key"""
+        return f"  {cls.label} " + " ".join(map(str, args))
+
 
 class EnemyBot(Block):
     """A fixed size block, it represents a enemy moving on a prefixed path. 
@@ -391,9 +425,9 @@ class EnemyBot(Block):
     """
     
     resizable = False
+    rectsize = [30, 30]
     label = 'B'
     _idcounter = count(0)
-    rectsize = [30, 30]
     BGCOL = (0, 255, 0)
     speed = 150
 
@@ -483,6 +517,7 @@ class Character(Block):
     There should be only one character in the maze.
     """
     
+    resizable = False
     rectsize = [20, 20]
     CURSORCOL = (255, 0, 0)
     UP = 0
@@ -490,7 +525,6 @@ class Character(Block):
     LEFT = 2
     RIGHT = 3
     JUMP = 4
-    resizable = False
   
     def __init__(self, pos):
         """Initialization:
@@ -648,4 +682,3 @@ class Character(Block):
 
         self.current_direction.clear()
         self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)
-

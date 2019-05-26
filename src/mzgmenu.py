@@ -158,7 +158,7 @@ class PgLabel(PgWidget):
 
     TEXTCOL = (255, 255, 255)
     
-    def __init__(self, labtext, pos, textheight, font=None, textcolor=self.TEXTCOL):
+    def __init__(self, labtext, pos, textheight, font=None, textcolor=TEXTCOL):
         """Initialization:
         
         labtext -- text of the label

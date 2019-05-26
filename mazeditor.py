@@ -32,15 +32,19 @@ and a pygame display to manipulate the blocks.
 
 import sys
 import os
+import re
 import numpy as np
+import threading
+import inspect
+
 import pygame
 from pygame import sprite
 import pygame.locals as pyloc
+
 import tkinter as tk
+from tkinter import ttk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
-
-import threading
 
 import src
 from src.mzgrooms import Maze
@@ -52,6 +56,7 @@ GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 ACT_LOAD = 0
 ACT_SCROLL = 1  #need keywords xoff, yoff
 ACT_DELETEBLOCK = 2  #need keyword todelete
+ACT_ADDBLOCK = 3 #need keyword line
 
 
 class ScrollBlock(Block):
@@ -124,6 +129,53 @@ class DrawMaze(Maze):
         return iroom.allblocks.sprites() + markers
 
 
+class NewBlockDialog(tk.Toplevel):
+    """Dialog interface to create a new block.
+
+    Child of tkinter.Toplevel
+    It open a dialog with a combobox of all block types, the user can choice
+    one which will be added at the clicked position.
+    """
+    
+    def _recoverblocks(obj):
+        """Recover the block types from the module using reflection""" 
+        return inspect.isclass(obj) and issubclass(obj, Block) and obj.__name__ != 'Block'
+
+    allblocks = list(name for name, obj in inspect.getmembers(src.mzgblocks, _recoverblocks))
+
+    def __init__(self, parent, pos):
+        """Initialization:
+        
+        parent -- parent widget
+        pos -- 2-length list, x y coordinates of the top-left corner or the to-be-created block
+        """
+        super(NewBlockDialog, self).__init__(parent)
+        self.blockpos = pos
+        self.title("New Block")
+        self.label = tk.Label(self, text="Choose the type of block to add")
+        self.label.grid(row=0, column=0, columnspan=4, sticky="ew")
+
+        self.blocktypes = ttk.Combobox(self, values=self.allblocks)
+        self.blocktypes.grid(row=1, column=0, columnspan=4, sticky="ew")
+        self.blocktypes.current(0)
+
+        self.okbutton = tk.Button(self, text="Create block", command=lambda : self.choose(True))
+        self.okbutton.grid(row=2, column=0)
+
+        self.cancelbutton = tk.Button(self, text="Cancel", command=lambda : self.choose(False))
+        self.cancelbutton.grid(row=2, column=3)
+
+    def choose(self, value):
+        """If value is True, create the block posting the ACT_ADDBLOCK signal to the pygame event system""" 
+        if value:
+            blocktype = self.blocktypes.get()
+            if blocktype in self.allblocks:
+                newline = getattr(src.mzgblocks, blocktype).reprlinenew(*self.blockpos)
+                newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
+                pygame.event.post(newev)
+        self.destroy()
+
+
 class BlockActions(tk.Toplevel):
     """Dialog interface to allow actions on a block on the screen.
 
@@ -140,18 +192,27 @@ class BlockActions(tk.Toplevel):
         super(BlockActions, self).__init__(parent)
         self.refblock = refblock
         self.title("Edit Block")
-        self.geometry("200x50+10+10")
-
+        
         self.actbuttons = []
-        for entry in self.refblock.actionmenu:
-            bb = tk.Button(self, text=entry, command=getattr(self, f"act_{entry}"))
+        for key, entry in self.refblock.actionmenu.items():
+            bb = tk.Button(self, text=key, command=getattr(self, f"act_{entry}"))
             bb.pack(side="top")
             self.actbuttons.append(bb)
 
     def act_delete(self):
+        """Post the dCT_DELETEBLOCK signal to the pygame event system, to delete the selected block"""
         newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
         pygame.event.post(newev)
         self.destroy()
+
+    def act_move(self):
+        #@@@ way for the user to select the destination (a dialog)
+        # ~ addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, tomove=self.refblock, destination=dd)
+        # ~ delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
+        # ~ pygame.event.post(addev)
+        # ~ pygame.event.post(delev)
+        # ~ self.destroy()
+        pass
 
 
 class App(tk.Tk):
@@ -176,26 +237,35 @@ class App(tk.Tk):
         self.mazefile = None
 
         self.title("Maze Editor")
-        self.newbutton = tk.Button(self, text="New", command=self.newgame)
-        self.newbutton.grid(row=0, column=0, sticky="ew")
+        self.newbutton = tk.Button(self, text="New map", command=self.newgame)
+        self.newbutton.grid(row=0, column=0, sticky="ew", columnspan=2)
 
-        self.loadbutton = tk.Button(self, text="Load", command=self.loadgame)
-        self.loadbutton.grid(row=0, column=1, sticky="ew")
+        self.loadbutton = tk.Button(self, text="Load map", command=self.loadgame)
+        self.loadbutton.grid(row=0, column=2, sticky="ew", columnspan=2)
 
-        self.savebutton = tk.Button(self, text="Save", command=self.writegame)
-        self.savebutton.grid(row=0, column=2, sticky="ew")
+        self.savebutton = tk.Button(self, text="Save map", command=self.writegame)
+        self.savebutton.grid(row=0, column=4, sticky="ew", columnspan=2)
 
         self.addroombutton = tk.Button(self, text="Add room", command=self.addroom)
-        self.addroombutton.grid(row=1, column=0, sticky="ew")
+        self.addroombutton.grid(row=1, column=0, sticky="ew", columnspan=3)
 
         self.delroombutton = tk.Button(self, text="Delete room", command=self.delroom)
-        self.delroombutton.grid(row=1, column=1, sticky="ew")
+        self.delroombutton.grid(row=1, column=3, sticky="ew", columnspan=3)
 
         self.nextroombutton = tk.Button(self, text="Show next room", command=lambda : self.showroom(1))
-        self.nextroombutton.grid(row=2, column=0, sticky="ew")
+        self.nextroombutton.grid(row=2, column=0, sticky="ew", columnspan=3)
 
         self.prevroombutton = tk.Button(self, text="Show previous room", command=lambda : self.showroom(-1))
-        self.prevroombutton.grid(row=2, column=1, sticky="ew")
+        self.prevroombutton.grid(row=2, column=3, sticky="ew", columnspan=3)
+
+        self.infoarea = tk.Text(self, height=2)
+        self.infoarea.grid(row=0, column=6)
+        self.infoarea.tag_configure("emph", foreground="red")
+        self.infoarea.insert("1.0", f"Current room: 0\n")
+        self.infoarea.insert("2.0", f"Current area: 0, 0\n")
+        self.infoarea.tag_add("emph", "1.14", "1.14lineend")
+        self.infoarea.tag_add("emph", "2.14", "2.14lineend")
+        self.infoarea.config(state=tk.DISABLED)
 
         thr = threading.Thread(target=self.pygameloop)
         thr.start()
@@ -249,18 +319,32 @@ class App(tk.Tk):
                 self.maze.draw(self.pygscreen)
 
     def showroom(self, off):
+        """Select a room and show it, off is the offset from current shown room"""
         if self.maze is not None:
             idx = self.maze.croom.roompos + off
             if 0 <= idx < len(self.maze.rooms):
                 self.maze.croom = self.maze.rooms[idx]
                 self.maze.draw(self.pygscreen)
+                self.infoarea.config(state=tk.NORMAL)
+                self.infoarea.delete("1.14", "1.14lineend")
+                self.infoarea.insert("1.14", str(idx))
+                self.infoarea.tag_add("emph", "1.14", "1.14lineend")
+                self.infoarea.config(state=tk.DISABLED)
+
+    def updatetextscroll(self):
+        """Update the text area in the GUI to show current region of the room"""
+        self.infoarea.config(state=tk.NORMAL)
+        self.infoarea.delete("2.14", "2.14lineend")
+        self.infoarea.insert("2.14", f"{self.maze.cpp[0]}, {self.maze.cpp[1]}\n")
+        self.infoarea.tag_add("emph", "2.14", "2.14lineend")
+        self.infoarea.config(state=tk.DISABLED)
 
     def blockdialog(self, slblock):
         """Open a BlockAction, slblock is the block affected"""
         dlg = BlockActions(self, slblock)
 
     def pygameloop(self):
-        """the editor main loop for the pygame part"""
+        """The editor main loop for the pygame part"""
         while True:
             for event in pygame.event.get():
                 if event.type == pyloc.QUIT:
@@ -269,18 +353,29 @@ class App(tk.Tk):
                     if event.action == ACT_LOAD:
                         self.maze.draw(self.pygscreen)
                     elif event.action == ACT_SCROLL:
-                        self.maze.cpp += np.array([event.xoff, event.yoff])
-                        self.maze.draw(self.pygscreen)
+                        fpos = self.maze.cpp + np.array([event.xoff, event.yoff])
+                        if fpos[0] >= 0 and fpos[1] >= 0:
+                            self.maze.cpp = fpos
+                            self.updatetextscroll()
+                    elif event.action == ACT_ADDBLOCK:
+                        lline = re.split('\s+', event.line.strip())
+                        self.maze.croom.addelem(lline)
                     elif event.action == ACT_DELETEBLOCK:
                         event.todelete.kill()
-                        self.maze.draw(self.pygscreen)
                     else:
                         print(event.action)
+                    self.maze.draw(self.pygscreen)
                 elif event.type == pyloc.MOUSEBUTTONDOWN and self.maze is not None:
                     self.grabbed = self.grabblock(event.pos)
                     if self.grabbed is not None and event.button == 3:
                         if len(self.grabbed.actionmenu) > 0:
                             self.blockdialog(self.grabbed)
+                    elif self.grabbed is None and event.button ==1:
+                        for scb in self.maze.scrollareas.sprites():
+                            if scb.rect.collidepoint(event.pos):
+                                break
+                        else:
+                            chooser = NewBlockDialog(self, event.pos)
                 elif event.type == pyloc.MOUSEBUTTONUP and self.maze is not None:
                     self.maze.draw(self.pygscreen)
                     self.grabbed = None
@@ -289,22 +384,21 @@ class App(tk.Tk):
                             scb.scrolling_event()
                             break
                 elif event.type == pyloc.MOUSEMOTION and self.maze is not None:
-                    if self.grabbed is not None:
-                        if event.buttons == (1, 0, 0):
-                            pressed = pygame.key.get_pressed()
-                            if pressed[pyloc.K_LCTRL] and self.grabbed.resizable:
-                                nw = self.grabbed.rsize[0] + event.rel[0]
-                                nh = self.grabbed.rsize[1] + event.rel[1]
-                                self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
-                                self.grabbed.rsize = [nw, nh]
-                                self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
-                                self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
-                            else:
-                                self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
-                                self.grabbed.aurect.x += event.rel[0]
-                                self.grabbed.aurect.y += event.rel[1]
-                                self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
-                                self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
+                    if event.buttons == (1, 0, 0):
+                        pressed = pygame.key.get_pressed()
+                        if pressed[pyloc.K_LCTRL] and self.grabbed.resizable:
+                            nw = self.grabbed.rsize[0] + event.rel[0]
+                            nh = self.grabbed.rsize[1] + event.rel[1]
+                            self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
+                            self.grabbed.rsize = [nw, nh]
+                            self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
+                            self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
+                        else:
+                            self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
+                            self.grabbed.aurect.x += event.rel[0]
+                            self.grabbed.aurect.y += event.rel[1]
+                            self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
+                            self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
                             
             pygame.display.update()
             
