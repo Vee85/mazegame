@@ -85,12 +85,12 @@ class Room:
                 self.deathblocks.add(crblock)
         elif lstpar[0] == 'D':
             bsize = Door.rectsize
-            crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])))
+            crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])), self.isgame)
             self.doors.add(crblock)
         elif lstpar[0] == 'K':
             dooridx = list(map(int, lstpar[4:6]))
             bsize = Key.rectsize
-            crblock = Key(blid, bpos, dooridx)
+            crblock = Key(blid, bpos, dooridx, self.isgame)
             self.keys.add(crblock)
         elif lstpar[0] == 'B':
             coordinates = list(map(int, lstpar[4:]))
@@ -101,6 +101,8 @@ class Room:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
 
         self.allblocks.add(crblock)
+        if self.isgame:
+            next(crblock._idcounter)
         
         #adjusting screens if needed
         maxx = ((bpos[0] + bsize[0]) // 1000)+1

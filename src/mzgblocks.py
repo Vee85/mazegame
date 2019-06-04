@@ -181,6 +181,12 @@ def blockfactory(cls):
             """Classmethod to reset the id generator"""
             cls._idcounter = count(0)
 
+        def blitinfo(self, *args):
+            text = '.'.join(map(str, args))
+            mfont = pygame.font.Font(None, 30)
+            surftext = mfont.render(text, True, (255, 0, 0))
+            self.image.blit(surftext, (0, 0))
+
     return Fblock
 
 
@@ -211,10 +217,7 @@ class Marker(blockfactory(Block)):
             bg = self.BGCOL
         super(Marker, self).__init__(bid, pos, rsize, bg)
         if not isgame:
-            text = f"{self.ref}.{self._id}"
-            mfont = pygame.font.Font(None, self.sizetopix(0, self.rsize[1])[1])
-            surftext = mfont.render(text, True, (255, 0, 0))
-            self.image.blit(surftext, (0, 0))
+            self.blitinfo(self.ref, self._id)
 
     def reprline(self):
         """Override method of base class. Markers do not need a text line"""
@@ -309,7 +312,7 @@ class Door(blockfactory(Block)):
     OEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "openexit.png"))
     OPENEXIT = pygame.transform.scale(OEXIT, src.PosManager.sizetopix(rectsize))
 
-    def __init__(self, bid, pos, doorid, lock):
+    def __init__(self, bid, pos, doorid, lock, isgame):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
@@ -319,6 +322,8 @@ class Door(blockfactory(Block)):
         super(Door, self).__init__(bid, pos, self.rectsize)
         self.destination = doorid
         self.locked = bool(lock)
+        if not isgame:
+            self.blitinfo(self._id, self.destination)
 
     @property
     def locked(self):
@@ -376,7 +381,7 @@ class Key(blockfactory(Block)):
     RAWIMKEY = pygame.image.load(os.path.join(IMAGE_DIR, "key.png"))
     IMKEY = pygame.transform.scale(RAWIMKEY, src.PosManager.sizetopix(rectsize))
 
-    def __init__(self, bid, pos, dooridlist):
+    def __init__(self, bid, pos, dooridlist, isgame):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
@@ -385,6 +390,8 @@ class Key(blockfactory(Block)):
         super(Key, self).__init__(bid, pos, self.rectsize)
         self.whoopen = dooridlist
         self.taken = False
+        if not isgame:
+            self.blitinfo(*self.whoopen)
 
     @property
     def taken(self):
@@ -446,18 +453,20 @@ class EnemyBot(blockfactory(Block)):
         self.pathmarkers = sprite.Group([Marker(next(Marker._idcounter), cppos, self.rectsize, self._id, isgame) for cppos in coordpoints]) #id of markers
         self.setspeed()
         if not isgame:
-            text = str(self._id)
-            mfont = pygame.font.Font(None, self.sizetopix(0, self.rsize[1])[1])
-            surftext = mfont.render(text, True, (255, 0, 0))
-            self.image.blit(surftext, (0, 0))
+            self.blitinfo(self._id)
         
     def reprline(self):
         """Override method of base class, adding custom informations"""
         flattencoords = [i for pp in self.getmarkers() for i in [pp.aurect.x, pp.aurect.y]]
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, flattencoords))
 
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Override method of base class, default line for EnemyBot"""
+        return f"{cls.label} " + " ".join(map(str, args))
+
     def getmarkers(self):
-        """Return all the Markers but the one equal to enemy initial position."""
+        """Return all the Markers but the one equal to enemy initial position"""
         return self.pathmarkers.sprites()[:-1]
 
     def update(self, xoff, yoff):
