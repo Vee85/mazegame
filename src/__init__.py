@@ -107,13 +107,22 @@ class PosManager:
     @staticmethod
     def postopix(xoff, yoff, *pp):
         """Converts an absolute position from arbitrary units to pixel units"""
-        res = [0] * 2
         xx, yy = PosManager._argspar(pp)
         xx = xx - (xoff * 1000)
         yy = yy - (yoff * 1000)
-        res[0] = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
-        res[1] = round(((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)) + PosManager.MARGIN_Y)
-        return res
+        px = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
+        py = round(((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)) + PosManager.MARGIN_Y)
+        return [px, py]
+
+    @staticmethod
+    def pixtopos(xoff, yoff, *pp):
+        """Converts pixels to absolute position in arbitrary units."""
+        xx, yy = PosManager._argspar(pp)
+        uxx = int(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        uyy = int(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        print("##", uxx, uyy)
+        print(xoff, yoff)
+        return [uxx + (xoff*1000), uyy + (yoff*1000)]
     
     @staticmethod
     def sizetopix(*pp):
@@ -121,11 +130,10 @@ class PosManager:
 
         Size is an (x, y) pair denoting x and y sizes of a rect
         """
-        res = [0] * 2
         xx, yy = PosManager._argspar(pp)
-        res[0] = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_Y))
-        res[1] = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
-        return res
+        px = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        py = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        return [px, py]
 
     @staticmethod
     def recttopix(xoff, yoff, rr):

@@ -70,37 +70,39 @@ class Room:
 
     def addelem(self, lstpar):
         """Parse a text line (lstpar argument) to create the corresponding block"""
-        bpos = list(map(int, lstpar[1:3]))
+        blid = int(lstpar[1])
+        bpos = list(map(int, lstpar[2:4]))
         if lstpar[0] in ['W', 'L', 'T']:
-            bsize = list(map(int, lstpar[3:5]))
+            bsize = list(map(int, lstpar[4:6]))
             if lstpar[0] == 'W':
-                crblock = Wall(bpos, bsize)
+                crblock = Wall(blid, bpos, bsize)
                 self.walls.add(crblock)
             elif lstpar[0] == 'L':
-                crblock = Ladder(bpos, bsize)
+                crblock = Ladder(blid, bpos, bsize)
                 self.ladders.add(crblock)
             elif lstpar[0] == 'T':
-                crblock = Deadlyblock(bpos, bsize)
+                crblock = Deadlyblock(blid, bpos, bsize)
                 self.deathblocks.add(crblock)
         elif lstpar[0] == 'D':
-            dooridx = int(lstpar[3])
             bsize = Door.rectsize
-            crblock = Door(bpos, int(lstpar[3]), bool(int(lstpar[4])))
+            crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])), self.isgame)
             self.doors.add(crblock)
         elif lstpar[0] == 'K':
-            dooridx = list(map(int, lstpar[3:5]))
+            dooridx = list(map(int, lstpar[4:6]))
             bsize = Key.rectsize
-            crblock = Key(bpos, dooridx)
+            crblock = Key(blid, bpos, dooridx, self.isgame)
             self.keys.add(crblock)
         elif lstpar[0] == 'B':
-            coordinates = list(map(int, lstpar[3:]))
+            coordinates = list(map(int, lstpar[4:]))
             bsize = EnemyBot.rectsize
-            crblock = EnemyBot(bpos, self.isgame, coordinates)
+            crblock = EnemyBot(blid, bpos, self.isgame, coordinates)
             self.bots.add(crblock)
         else:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
 
         self.allblocks.add(crblock)
+        if self.isgame:
+            next(crblock._idcounter)
         
         #adjusting screens if needed
         maxx = ((bpos[0] + bsize[0]) // 1000)+1
@@ -208,7 +210,6 @@ class Maze:
         else:
             streamer = io.StringIO("NR 1\n\
                                     R 0\n\
-                                    W 0 100 100 50\n\
                                     IR 0\n\
                                     IP 50 50\n"
                                     )
@@ -239,7 +240,7 @@ class Maze:
                             self.firstroom = int(lline[1])
                         elif lline[0] == 'IP' and len(lline) == 3:
                             curspos = list(map(int, lline[1:]))
-                        elif len(lline) >= 3:
+                        elif len(lline) >= 4:
                             self.rooms[ridx].addelem(lline)
                         else:
                             raise RuntimeError(f"error in map construction: {fl}")

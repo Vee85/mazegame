@@ -26,10 +26,9 @@
 
 Use this file as executable to test a map. This tester make use of unittest
 to perform a set of validation checks on a map, searching for discrepancies in the file
-which could make the map invalid, like a map which cannot be solved.
-The tester is not guaranteed to identify all possible problems.
-The map designer could also create peculiar maps which are still solvable
-but do not pass this test.
+which could make the map invalid or unsolvable. The tester is not guaranteed
+to identify all possible problems. The map designer could also create peculiar
+maps which are still solvable but do not pass this test.
 """
 
 
