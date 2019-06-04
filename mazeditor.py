@@ -49,6 +49,7 @@ from tkinter import messagebox
 import src
 from src.mzgrooms import Maze
 from src.mzgblocks import Block
+from src.mzgblocks import blockfactory
 
 GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 
@@ -59,7 +60,7 @@ ACT_DELETEBLOCK = 2  #need keyword todelete
 ACT_ADDBLOCK = 3 #need keyword line
 
 
-class ScrollBlock(Block):
+class ScrollBlock(blockfactory(Block)):
     """An invisible block, used to define a clickable area to move the camera.
 
     Children of Block. Can be of any size but not resizable. Used to emit
@@ -77,7 +78,7 @@ class ScrollBlock(Block):
         direction -- two-length list with x and y offset: by how much "screen" the camera must be moved
         e.g. [0, 1] to move by one screen down
         """
-        super(ScrollBlock, self).__init__(pos, rsize)
+        super(ScrollBlock, self).__init__(next(self._idcounter), pos, rsize)
         self.image.fill((0, 0, 0))
         self.image.set_colorkey((0, 0, 0))
         self.direction = direction
@@ -91,7 +92,7 @@ class ScrollBlock(Block):
 class DrawMaze(Maze):
     """The room container with additions for the editor
 
-    child of mzgrooms.Maze. Uses predefined ScrollBlocks to scroll the room
+    child of mzgrooms.Maze. It uses predefined ScrollBlocks to scroll the room
     with the mouse. It's created by the App interface.
     """
     
@@ -129,6 +130,41 @@ class DrawMaze(Maze):
         return iroom.allblocks.sprites() + markers
 
 
+class Doorinfo(tk.Frame):
+    def __init__(self, parent):
+        super(Doorinfo, self).__init__(parent)
+        self.labelone = tk.Label(self, text="Destination door id")
+        self.labelone.grid(row=0, column=0)
+        self.doordest = tk.Spinbox(self, from_=0, to=10000)
+        self.doordest.grid(row=1, column=0)
+
+        self.lockvar = tk.IntVar()
+        self.labeltwo = tk.Label(self, text="Is locked?")
+        self.labeltwo.grid(row=0, column=1)
+        self.islocked = tk.Checkbutton(self, variable=self.lockvar)
+        self.islocked.grid(row=1, column=1)
+
+    def getinfo(self):
+        return [int(self.doordest.get()), self.lockvar.get()]
+
+
+class Keyinfo(tk.Frame):
+    def __init__(self, parent):
+        super(Keyinfo, self).__init__(parent)
+        self.labelone = tk.Label(self, text="door's ids (separated by spaces)")
+        self.labelone.grid(row=0, column=0)
+        self.opened = tk.Entry(self)
+        self.opened.grid(row=1, column=0)
+
+    def getinfo(self):
+        try:
+            res = list(map(int, self.opened.get().strip().split()))
+        except ValueError as err:
+            print("Error in setting ids of doors to be opened by the key: please insert integers!\n" + str(err))
+            res = None
+        return res
+
+
 class NewBlockDialog(tk.Toplevel):
     """Dialog interface to create a new block.
 
@@ -136,10 +172,10 @@ class NewBlockDialog(tk.Toplevel):
     It open a dialog with a combobox of all block types, the user can choice
     one which will be added at the clicked position.
     """
-    
+
     def _recoverblocks(obj):
-        """Recover the block types from the module using reflection""" 
-        return inspect.isclass(obj) and issubclass(obj, Block) and obj.__name__ != 'Block'
+        """Recover the block types from the module using reflection"""
+        return inspect.isclass(obj) and issubclass(obj, Block) and obj.__name__ not in ['Block', 'Character']
 
     allblocks = list(name for name, obj in inspect.getmembers(src.mzgblocks, _recoverblocks))
 
@@ -155,24 +191,55 @@ class NewBlockDialog(tk.Toplevel):
         self.label = tk.Label(self, text="Choose the type of block to add")
         self.label.grid(row=0, column=0, columnspan=4, sticky="ew")
 
-        self.blocktypes = ttk.Combobox(self, values=self.allblocks)
+        self.blocktypes = ttk.Combobox(self, values=self.allblocks + ['Door Set'])
         self.blocktypes.grid(row=1, column=0, columnspan=4, sticky="ew")
         self.blocktypes.current(0)
+        self.blocktypes.bind("<<ComboboxSelected>>", self.showcustompanel)
+
+        self.custompanel = None
 
         self.okbutton = tk.Button(self, text="Create block", command=lambda : self.choose(True))
-        self.okbutton.grid(row=2, column=0)
+        self.okbutton.grid(row=5, column=0)
 
         self.cancelbutton = tk.Button(self, text="Cancel", command=lambda : self.choose(False))
-        self.cancelbutton.grid(row=2, column=3)
+        self.cancelbutton.grid(row=5, column=3)
+
+    def showcustompanel(self, event):
+        infoblocks = {"Door" : Doorinfo, "Key" : Keyinfo}
+        if self.custompanel is not None:
+            self.custompanel.grid_forget()
+        try:
+            self.custompanel = infoblocks[self.blocktypes.get()](self)
+            self.custompanel.grid(row=2, column=0, rowspan=3, columnspan=4, sticky="ew")
+        except KeyError:
+            self.custompanel = None
 
     def choose(self, value):
         """If value is True, create the block posting the ACT_ADDBLOCK signal to the pygame event system""" 
         if value:
             blocktype = self.blocktypes.get()
             if blocktype in self.allblocks:
-                newline = getattr(src.mzgblocks, blocktype).reprlinenew(*self.blockpos)
+                nid = next(getattr(src.mzgblocks, blocktype)._idcounter)
+                commonparam = [nid] + list(self.blockpos)
+                if self.custompanel is not None:
+                    extrapar = self.custompanel.getinfo()
+                    if extrapar is None:
+                        return
+                    commonparam.extend(extrapar)
+                newline = getattr(src.mzgblocks, blocktype).reprlinenew(*commonparam)
                 newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
                 pygame.event.post(newev)
+            elif blocktype == 'Door Set':
+                bltp = ['Door', 'Door', 'Key']
+                nids = [next(src.mzgblocks.Door._idcounter), next(src.mzgblocks.Door._idcounter), next(src.mzgblocks.Key._idcounter)]
+                params = [[nids[0]] + list(self.blockpos) + [nids[1], 1],
+                          [nids[1]] + [self.blockpos[0]+50, self.blockpos[1]] + [nids[0], 1],
+                          [nids[2]] + [self.blockpos[0]+100, self.blockpos[1]] + nids[0:2]]
+                for btp, prm in zip(bltp, params):
+                    newline = getattr(src.mzgblocks, btp).reprlinenew(*prm)
+                    newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
+                    pygame.event.post(newev)
+
         self.destroy()
 
 
@@ -183,6 +250,7 @@ class BlockActions(tk.Toplevel):
     It open a dialog with all the actions available for a block type
     Its method are binded as callbacks for the displayed buttons.
     """
+    
     def __init__(self, parent, refblock):
         """Initialization:
         
@@ -207,7 +275,7 @@ class BlockActions(tk.Toplevel):
 
     def act_move(self):
         #@@@ way for the user to select the destination (a dialog)
-        # ~ addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, tomove=self.refblock, destination=dd)
+        # ~ addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, destination=dd)
         # ~ delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
         # ~ pygame.event.post(addev)
         # ~ pygame.event.post(delev)
@@ -216,7 +284,7 @@ class BlockActions(tk.Toplevel):
 
 
 class App(tk.Tk):
-    """the editor container. Represent the top level class, contaning the editor.
+    """the editor container. Represents the top level class, contaning the editor.
 
     Child of tkinter.Tk
     It uses threading to allow the tkinter GUI and the pygame display and mainloop to work
@@ -358,8 +426,9 @@ class App(tk.Tk):
                             self.maze.cpp = fpos
                             self.updatetextscroll()
                     elif event.action == ACT_ADDBLOCK:
-                        lline = re.split('\s+', event.line.strip())
-                        self.maze.croom.addelem(lline)
+                        for bln in event.line.split('\n'):
+                            lline = re.split('\s+', bln.strip())
+                            self.maze.croom.addelem(lline)
                     elif event.action == ACT_DELETEBLOCK:
                         event.todelete.kill()
                     else:
@@ -370,7 +439,7 @@ class App(tk.Tk):
                     if self.grabbed is not None and event.button == 3:
                         if len(self.grabbed.actionmenu) > 0:
                             self.blockdialog(self.grabbed)
-                    elif self.grabbed is None and event.button ==1:
+                    elif self.grabbed is None and event.button == 1:
                         for scb in self.maze.scrollareas.sprites():
                             if scb.rect.collidepoint(event.pos):
                                 break
@@ -384,7 +453,7 @@ class App(tk.Tk):
                             scb.scrolling_event()
                             break
                 elif event.type == pyloc.MOUSEMOTION and self.maze is not None:
-                    if event.buttons == (1, 0, 0):
+                    if event.buttons == (1, 0, 0) and self.grabbed is not None:
                         pressed = pygame.key.get_pressed()
                         if pressed[pyloc.K_LCTRL] and self.grabbed.resizable:
                             nw = self.grabbed.rsize[0] + event.rel[0]

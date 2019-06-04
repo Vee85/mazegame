@@ -60,108 +60,131 @@ IMAGE_DIR = os.path.join(src.MAIN_DIR, '../images')
 
 
 class Block(sprite.Sprite, src.PosManager):
-    '''Base interface for all sprite block types, do not use it directly, use its children
+    '''Base class for all sprite block types. Used as base class by the class factory.
 
-    Children of pygame.sprite.Sprite and src.PosManager. The methods are:
-    fillimage -- fill the image with the bg color or mosaic tile
-    update -- update pygame.Rect with the current position / size
-    reprline -- return text line of the block in map file format (used to create a map by the editor)
-    collidinggroup -- return other sprites of a group colliding with this sprite
-     
-    It has also the following property:
-    risze -- get or set the size of the block, if resizable
-    '''
+     Children of pygame.sprite.Sprite and src.PosManager.
+     '''
     
-    resizable = True
     actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
     
-    def __init__(self, pos, rsize, bg=None):
-        """Initialization:
-        
-        pos -- two-length list with x, y coordinates of top-left corner of the rectangle
-        rsize -- two-length list with width and height of the rectangle
-        bg -- background color (3-length RGB tuple) or a pygame.Surface representing a tile
-        """
+    def __init__(self):
+        '''Initalitazion'''
         super(Block, self).__init__()
-        self.image = pygame.Surface(self.sizetopix(rsize))
-        self.aurect = src.FlRect(pos[0], pos[1], rsize[0], rsize[1])
-        self.bg = bg
-        self.fillimage()
 
-        #place block to its coordinates
-        self.update(0, 0)
 
-    def fillimage(self):
-        """Fill the image with the bg color or mosaic tile.
+def blockfactory(cls):
+    '''class factory for all the blocks'''
+    class Fblock(cls):
+        '''Common interface for all sprite block types.
 
-        Return nothing, raise a RuntimeError if an invalid instance has been
-        stored as the 'bg' argument.
-        """
-        if self.bg is None:
-            pass
-        elif isinstance(self.bg, (tuple, list)):
-            self.image.fill(self.bg)
-        elif isinstance(self.bg, pygame.Surface):
-            subim = self.bg.convert()
-            for i in range(0, self.rsize[0], subim.get_rect().width):
-                for j in range(0, self.rsize[1], subim.get_rect().height):
-                    self.image.blit(subim, (i, j))
-        else:
-            raise RuntimeError("Wrong initialization parameter.")
+        Children of Block. The methods are:
+        fillimage -- fill the image with the bg color or mosaic tile
+        update -- update pygame.Rect with the current position / size
+        reprline -- return text line of the block in map file format (used to create a map by the editor)
+        reprlinenew -- classmethod, used by editor to write lines of new blocks to be saved in the map file
+        collidinggroup -- return other sprites of a group colliding with this sprite
+        It has also the following property:
+        risze -- get or set the size of the block, if resizable
+        '''
 
-    #prepare drawing, shift blocks to be in the screen
-    def update(self, xoff, yoff):
-        """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
-        self.rect = self.recttopix(xoff, yoff, self.aurect.getRect())
-
-    @property
-    def rsize(self):
-        return [self.aurect.width, self.aurect.height]
-
-    @rsize.setter
-    def rsize(self, newsize):
-        if self.resizable:
-            nwpxsize = self.sizetopix(newsize) #@@@this should not be resolution dependent. How to?
-            if any([i <= 2 for i in nwpxsize]):
-                return
-            self.aurect.width = newsize[0]
-            self.aurect.height = newsize[1]
-            self.image = pygame.transform.scale(self.image, nwpxsize)
+        _idcounter = count(0)
+        resizable = True
+        
+        def __init__(self, bid, pos, rsize, bg=None):
+            """Initialization:
+            
+            pos -- two-length list with x, y coordinates of top-left corner of the rectangle
+            rsize -- two-length list with width and height of the rectangle
+            bg -- background color (3-length RGB tuple) or a pygame.Surface representing a tile
+            """
+            super(Fblock, self).__init__()
+            self._id = bid
+            self.image = pygame.Surface(self.sizetopix(rsize))
+            self.aurect = src.FlRect(pos[0], pos[1], rsize[0], rsize[1])
+            self.bg = bg
             self.fillimage()
 
-    def reprline(self):
-        """Return text line of the block in map file format (used by the editor)
+            #place block to its coordinates
+            self.update(0, 0)
 
-        This is a basic format holding a label and the PyRect values x, y, width, height.
-        Is fine for basic blocks, more complex blocks need to override it with custom representation lines.
-        """
-        return f"  {self.label} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
+        def fillimage(self):
+            """Fill the image with the bg color or mosaic tile.
 
-    @classmethod
-    def reprlinenew(cls, *args):
-        """Return default text line for a new block in map file format (used by the editor)
+            Return nothing, raise a RuntimeError if an invalid instance has been
+            stored as the 'bg' argument.
+            """
+            if self.bg is None:
+                pass
+            elif isinstance(self.bg, (tuple, list)):
+                self.image.fill(self.bg)
+            elif isinstance(self.bg, pygame.Surface):
+                subim = self.bg.convert()
+                for i in range(0, self.rsize[0], subim.get_rect().width):
+                    for j in range(0, self.rsize[1], subim.get_rect().height):
+                        self.image.blit(subim, (i, j))
+            else:
+                raise RuntimeError("Wrong initialization parameter.")
 
-        Classmethod. *args are positional arguments, to be added to the list, and vary
-        from block type to block type. Defaults are:
-        - x, y coordinates of the top-left vertex of the rectangle.
-        Block types in need of a custom line override this method and may require a different
-        set of positional arguments.
-        """
-        if cls.__name__ == "Block":
-            raise RuntimeError("reprlinenew classmethod should not be called by a Block instance!")
+        #prepare drawing, shift blocks to be in the screen
+        def update(self, xoff, yoff):
+            """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
+            self.rect = self.recttopix(xoff, yoff, self.aurect.getRect())
 
-        lab = f"  {cls.label} " + " ".join(map(str, args))
-        if hasattr(cls, "rectsize"):
-            return lab + f" {cls.rectsize[0]} {cls.rectsize[1]}"
-        else:
-            return lab + " 100 50"
+        @property
+        def rsize(self):
+            return [self.aurect.width, self.aurect.height]
 
-    def collidinggroup(self, group):
-        """Return other sprites of a group colliding with this sprite"""
-        return [sp for sp in group.sprites() if self.aurect.colliderect(sp.aurect)]
-        
+        @rsize.setter
+        def rsize(self, newsize):
+            if self.resizable:
+                nwpxsize = self.sizetopix(newsize) #@@@this should not be resolution dependent. How to?
+                if any([i <= 2 for i in nwpxsize]):
+                    return
+                self.aurect.width = newsize[0]
+                self.aurect.height = newsize[1]
+                self.image = pygame.transform.scale(self.image, nwpxsize)
+                self.fillimage()
 
-class Marker(Block):
+        def reprline(self):
+            """Return text line of the block in map file format (used by the editor)
+
+            This is a basic format holding a label and the PyRect values x, y, width, height.
+            Is fine for basic blocks, more complex blocks need to override it with custom representation lines.
+            """
+            return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
+
+        @classmethod
+        def reprlinenew(cls, *args):
+            """Return default text line for a new block in map file format (used by the editor)
+
+            Classmethod. *args are positional arguments, to be added to the list, and vary
+            from block type to block type. Defaults are:
+            - x, y coordinates of the top-left vertex of the rectangle.
+            Block types in need of a custom line override this method and may require a different
+            set of positional arguments.
+            """
+            if cls.__name__ == "Fblock":
+                raise RuntimeError("reprlinenew classmethod should not be called by a Fblock instance!")
+
+            lab = f"{cls.label} " + " ".join(map(str, args))
+            if hasattr(cls, "rectsize"):
+                return lab + f" {cls.rectsize[0]} {cls.rectsize[1]}"
+            else:
+                return lab + " 100 50"
+
+        def collidinggroup(self, group):
+            """Return other sprites of a group colliding with this sprite"""
+            return [sp for sp in group.sprites() if self.aurect.colliderect(sp.aurect)]
+
+        @classmethod
+        def initcounter(cls):
+            """Classmethod to reset the id generator"""
+            cls._idcounter = count(0)
+
+    return Fblock
+
+
+class Marker(blockfactory(Block)):
     """An invisible, any size but not resizable block, used to mark a position on the screen.
 
     Children of Block. Markers have an id incremented by 1 each time a new Marker
@@ -170,10 +193,9 @@ class Marker(Block):
     
     resizable = False
     label = 'M'
-    _idcounter = count(0)
     BGCOL = (100, 100, 100)
     
-    def __init__(self, pos, rsize, ref, isgame=True):
+    def __init__(self, bid, pos, rsize, ref, isgame=True):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
@@ -182,23 +204,17 @@ class Marker(Block):
         isgame -- boolean value, allows extra actions depending if the class is called
         by the game or by the editor.
         """
-        self._id = next(self._idcounter)
         self.ref = ref
         if isgame:
             bg = None
         else:
             bg = self.BGCOL
-        super(Marker, self).__init__(pos, rsize, bg)
+        super(Marker, self).__init__(bid, pos, rsize, bg)
         if not isgame:
             text = f"{self.ref}.{self._id}"
             mfont = pygame.font.Font(None, self.sizetopix(0, self.rsize[1])[1])
             surftext = mfont.render(text, True, (255, 0, 0))
             self.image.blit(surftext, (0, 0))
-
-    @staticmethod
-    def initcounter():
-        """Staticmethod to reset the id generator"""
-        Marker._idcounter = count(0)
 
     def reprline(self):
         """Override method of base class. Markers do not need a text line"""
@@ -210,7 +226,7 @@ class Marker(Block):
         pass
         
 
-class Wall(Block):
+class Wall(blockfactory(Block)):
     """A solid wall of any size, can be used as floor, roof, or vertical wall.
 
     Children of Block.
@@ -219,16 +235,16 @@ class Wall(Block):
     label = 'W'
     BGCOL = (255, 255, 255)
     
-    def __init__(self, pos, rsize):
+    def __init__(self, bid, pos, rsize):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
-        super(Wall, self).__init__(pos, rsize, self.BGCOL)
+        super(Wall, self).__init__(bid, pos, rsize, self.BGCOL)
 
 
-class Ladder(Block):
+class Ladder(blockfactory(Block)):
     """A ladder can be of any size. Can be crossed and climbed to reach high platforms.
 
     Children of Block.
@@ -237,16 +253,16 @@ class Ladder(Block):
     label = 'L'
     BGIMAGE = pygame.image.load(os.path.join(IMAGE_DIR, "ladderpattern.png"))
 
-    def __init__(self, pos, rsize):
+    def __init__(self, bid, pos, rsize):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
-        super(Ladder, self).__init__(pos, rsize, self.BGIMAGE)
+        super(Ladder, self).__init__(bid, pos, rsize, self.BGIMAGE)
 
 
-class Deadlyblock(Block):
+class Deadlyblock(blockfactory(Block)):
     """A block (any size) which should not be touched. Is game over.
 
     Children of Block. Create a death event if the player collides with it.
@@ -255,13 +271,13 @@ class Deadlyblock(Block):
     label = 'T'
     BGCOL = (0, 0, 255)
 
-    def __init__(self, pos, rsize):
+    def __init__(self, bid, pos, rsize):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
-        super(Deadlyblock, self).__init__(pos, rsize, self.BGCOL)
+        super(Deadlyblock, self).__init__(bid, pos, rsize, self.BGCOL)
 
     def death_event(self):
         """Post a deathevent into the pygame.event queue"""
@@ -269,7 +285,7 @@ class Deadlyblock(Block):
         pygame.event.post(newev)
 
 
-class Door(Block):
+class Door(blockfactory(Block)):
     """A fixed size block, it represents one extremity of a passage.
 
     Children of Block. A Door has a numeric id, and holds the numeric id of
@@ -284,7 +300,6 @@ class Door(Block):
     resizable = False
     rectsize = [50, 50]
     label = 'D'
-    _idcounter = count(0)
     LDOOR = pygame.image.load(os.path.join(IMAGE_DIR, "lockeddoor.png"))
     LOCKEDDOOR = pygame.transform.scale(LDOOR, src.PosManager.sizetopix(rectsize))
     ODOOR = pygame.image.load(os.path.join(IMAGE_DIR, "opendoor.png"))
@@ -294,22 +309,16 @@ class Door(Block):
     OEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "openexit.png"))
     OPENEXIT = pygame.transform.scale(OEXIT, src.PosManager.sizetopix(rectsize))
 
-    def __init__(self, pos, doorid, lock):
+    def __init__(self, bid, pos, doorid, lock):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         doorid -- the id of the other end of the passage (the destination door).
         lock -- boolean or anythin that can be casted to boolean. If true the door is locked.
         """
-        super(Door, self).__init__(pos, self.rectsize)
-        self._id = next(self._idcounter)
+        super(Door, self).__init__(bid, pos, self.rectsize)
         self.destination = doorid
         self.locked = bool(lock)
-
-    @staticmethod
-    def initcounter():
-        """Staticmethod to reset the id generator"""
-        Door._idcounter = count(0)
 
     @property
     def locked(self):
@@ -341,15 +350,15 @@ class Door(Block):
     def reprline(self):
         """Override method of base class, adding custom informations"""
         ilock = 1 if self.locked else 0
-        return f"  {self.label} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
+        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
 
     @classmethod
     def reprlinenew(cls, *args):
         """Override method of base class, default line for Door"""
-        return f"  {cls.label} " + " ".join(map(str, args))
+        return f"{cls.label} " + " ".join(map(str, args))
+        
 
-
-class Key(Block):
+class Key(blockfactory(Block)):
     """A fixed size block, it represents a key to open a specific door.
 
     Children of Block. A Key has a numeric id and holds the numeric id of one or more Doors.
@@ -364,25 +373,18 @@ class Key(Block):
     resizable = False
     rectsize = [50, 50]
     label = 'K'
-    _idcounter = count(0)
     RAWIMKEY = pygame.image.load(os.path.join(IMAGE_DIR, "key.png"))
     IMKEY = pygame.transform.scale(RAWIMKEY, src.PosManager.sizetopix(rectsize))
 
-    def __init__(self, pos, dooridlist):
+    def __init__(self, bid, pos, dooridlist):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         dooridlist --  a list of the door ids which the key opens.
         """
-        super(Key, self).__init__(pos, self.rectsize)
-        self._id = next(self._idcounter)
+        super(Key, self).__init__(bid, pos, self.rectsize)
         self.whoopen = dooridlist
         self.taken = False
-
-    @staticmethod
-    def initcounter():
-        """Staticmethod to reset the id generator"""
-        Key._idcounter = count(0)
 
     @property
     def taken(self):
@@ -407,7 +409,7 @@ class Key(Block):
 
     def reprline(self):
         """Override method of base class, adding custom informations"""
-        return f"  {self.label} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
+        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
 
     @classmethod
     def reprlinenew(cls, *args):
@@ -415,7 +417,7 @@ class Key(Block):
         return f"  {cls.label} " + " ".join(map(str, args))
 
 
-class EnemyBot(Block):
+class EnemyBot(blockfactory(Block)):
     """A fixed size block, it represents a enemy moving on a prefixed path. 
 
     Children of Block. A EnemyBot has a numeric id and moves at fixed speed in the room.
@@ -427,11 +429,10 @@ class EnemyBot(Block):
     resizable = False
     rectsize = [30, 30]
     label = 'B'
-    _idcounter = count(0)
     BGCOL = (0, 255, 0)
     speed = 150
 
-    def __init__(self, pos, isgame, *coordlist):
+    def __init__(self, bid, pos, isgame, *coordlist):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
@@ -439,11 +440,10 @@ class EnemyBot(Block):
         *coordlist -- variadic, flat list of x y coordinates, used to create the Markers. Each pair
         represent the top left corner of the Marker rectangle.
         """
-        self._id = next(self._idcounter)
+        super(EnemyBot, self).__init__(bid, pos, self.rectsize, self.BGCOL)
         Marker.initcounter()
         coordpoints = [crd for crd in src.pairextractor(*coordlist)] + [pos]
-        self.pathmarkers = sprite.Group([Marker(cppos, self.rectsize, self._id, isgame) for cppos in coordpoints])
-        super(EnemyBot, self).__init__(pos, self.rectsize, self.BGCOL)
+        self.pathmarkers = sprite.Group([Marker(next(Marker._idcounter), cppos, self.rectsize, self._id, isgame) for cppos in coordpoints]) #id of markers
         self.setspeed()
         if not isgame:
             text = str(self._id)
@@ -454,12 +454,7 @@ class EnemyBot(Block):
     def reprline(self):
         """Override method of base class, adding custom informations"""
         flattencoords = [i for pp in self.getmarkers() for i in [pp.aurect.x, pp.aurect.y]]
-        return f"  {self.label} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, flattencoords))
-
-    @staticmethod
-    def initcounter():
-        """Staticmethod to reset the id generator"""
-        EnemyBot._idcounter = count(0)
+        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, flattencoords))
 
     def getmarkers(self):
         """Return all the Markers but the one equal to enemy initial position."""
@@ -469,8 +464,11 @@ class EnemyBot(Block):
         """Override method of base class to store also current offset and update the Markers rects"""
         self.off = [xoff, yoff]
         super(EnemyBot, self).update(xoff, yoff)
-        for mrk in self.pathmarkers.sprites():
-            mrk.update(xoff, yoff)
+        try:
+            for mrk in self.pathmarkers.sprites():
+                mrk.update(xoff, yoff)
+        except AttributeError:
+            pass
 
     def death_event(self):
         """Post a deathevent into the pygame.event queue"""
@@ -509,7 +507,7 @@ class EnemyBot(Block):
             self.setspeed()
 
 
-class Character(Block):
+class Character(blockfactory(Block)):
     """A fixed size block, The cursor controlled by the player.
 
     Children of Block. It's movement is controlled by the player through keyboard.
@@ -531,7 +529,7 @@ class Character(Block):
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         """
-        super(Character, self).__init__(pos, self.rectsize, self.CURSORCOL)
+        super(Character, self).__init__(0, pos, self.rectsize, self.CURSORCOL)
         self.current_direction = set()
         self.touchplane = False
 
@@ -549,6 +547,11 @@ class Character(Block):
     def reprline(self):
         """Override method of base class, adding custom informations"""
         return f"IP {self.aurect.x} {self.aurect.y}"
+
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Override method, Character must not call this"""
+        raise NotImplementedError("Character do not need to be created by the editor")
 
     def update(self, xoff, yoff):
         """Override method of base class to store also current offset"""
