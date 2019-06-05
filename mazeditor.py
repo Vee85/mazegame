@@ -56,7 +56,7 @@ GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 DOUBLECLICKTIME = 500
 
 #userevent actions
-ACT_LOAD = 0
+ACT_REFRESH = 0 #no keyword
 ACT_SCROLL = 1  #need keywords xoff, yoff
 ACT_DELETEBLOCK = 2  #need keyword todelete
 ACT_ADDBLOCK = 3 #need keyword line
@@ -317,6 +317,8 @@ class BlockActions(tk.Toplevel):
         super(BlockActions, self).__init__(parent)
         self.refblock = refblock
         self.title("Edit Block")
+        self.info = tk.Label(self, text="To move a block, move to\nthe destination room before\nclicking the button Move.")
+        self.info.pack(side="top")
         
         self.actbuttons = []
         for key, entry in self.refblock.actionmenu.items():
@@ -331,13 +333,17 @@ class BlockActions(tk.Toplevel):
         self.destroy()
 
     def act_move(self):
-        #@@@ way for the user to select the destination (a dialog)
-        # ~ addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, destination=dd)
-        # ~ delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
-        # ~ pygame.event.post(addev)
-        # ~ pygame.event.post(delev)
-        # ~ self.destroy()
-        pass
+        copyline = self.refblock.reprline()
+        addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=copyline)
+        delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
+        pygame.event.post(addev)
+        pygame.event.post(delev)
+        self.destroy()
+        
+    def act_addmarker(self):
+        self.refblock.addmarker(self.refblock.aurect.x + 50, self.refblock.aurect.y)
+        newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
+        pygame.event.post(newev)
 
 
 class App(tk.Tk):
@@ -406,7 +412,7 @@ class App(tk.Tk):
     def newgame(self):
         """Open the default initial map to create a new map"""
         self.maze = DrawMaze(None)
-        newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_LOAD)
+        newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
         pygame.event.post(newev)
 
     def loadgame(self):
@@ -414,7 +420,7 @@ class App(tk.Tk):
         mazefile = askopenfilename(initialdir=GAME_DIR, title="Load file", filetypes=[("all files","*")])
         if len(mazefile) > 0:
             self.maze = DrawMaze(mazefile)
-            newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_LOAD)
+            newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
             pygame.event.post(newev)
 
     def writegame(self):
@@ -483,9 +489,8 @@ class App(tk.Tk):
                 if event.type == pyloc.QUIT:
                     sys.exit()
                 elif event.type == pyloc.USEREVENT:
-                    if event.action == ACT_LOAD:
-                        self.maze.draw(self.pygscreen)
-                        self.updateinfoarea(0)
+                    if event.action == ACT_REFRESH:
+                        self.updateinfoarea(self.maze.croom.roompos)
                     elif event.action == ACT_SCROLL:
                         fpos = self.maze.cpp + np.array([event.xoff, event.yoff])
                         if fpos[0] >= 0 and fpos[1] >= 0:
