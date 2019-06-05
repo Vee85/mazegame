@@ -53,6 +53,7 @@ class TestMaze(unittest.TestCase):
 
     Child of unittest.TestCase. See each test for a short description.
     """
+    
     game = None
 
     def getdoorlist(self):

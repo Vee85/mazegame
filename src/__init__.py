@@ -120,8 +120,6 @@ class PosManager:
         xx, yy = PosManager._argspar(pp)
         uxx = int(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
         uyy = int(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
-        print("##", uxx, uyy)
-        print(xoff, yoff)
         return [uxx + (xoff*1000), uyy + (yoff*1000)]
     
     @staticmethod

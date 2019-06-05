@@ -432,12 +432,14 @@ class EnemyBot(blockfactory(Block)):
     in a straight line, returns at the starting point and restart in a loop.
     If the player touches them, it's game over.
     """
-    
+
     resizable = False
     rectsize = [30, 30]
     label = 'B'
     BGCOL = (0, 255, 0)
     speed = 150
+    actionmenu = dict(Block.actionmenu)
+    actionmenu["Add Marker"] = "addmarker"
 
     def __init__(self, bid, pos, isgame, *coordlist):
         """Initialization:
@@ -469,6 +471,13 @@ class EnemyBot(blockfactory(Block)):
         """Return all the Markers but the one equal to enemy initial position"""
         return self.pathmarkers.sprites()[:-1]
 
+    def addmarker(self, x, y):
+        last = self.pathmarkers.sprites()[-1]
+        self.pathmarkers.remove(last)
+        self.pathmarkers.add(Marker(last._id, [x, y], self.rectsize, self._id, False))
+        last._id += 1
+        self.pathmarkers.add(last)
+        
     def update(self, xoff, yoff):
         """Override method of base class to store also current offset and update the Markers rects"""
         self.off = [xoff, yoff]
