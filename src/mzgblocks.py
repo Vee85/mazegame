@@ -541,14 +541,15 @@ class Character(blockfactory(Block)):
     LEFT = 2
     RIGHT = 3
     JUMP = 4
-  
-    def __init__(self, pos):
+    
+    def __init__(self, pos, iniroom):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         """
         super(Character, self).__init__(0, pos, self.rectsize, self.CURSORCOL)
         self.current_direction = set()
+        self.cridx = iniroom
         self.touchplane = False
 
         #space unit is arbitrary (screen size = 1000), time unit is second
@@ -564,7 +565,7 @@ class Character(blockfactory(Block)):
 
     def reprline(self):
         """Override method of base class, adding custom informations"""
-        return f"IP {self.aurect.x} {self.aurect.y}"
+        return f"IN {self.cridx} {self.aurect.x} {self.aurect.y}"
 
     @classmethod
     def reprlinenew(cls, *args):

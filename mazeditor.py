@@ -53,13 +53,14 @@ from src.mzgblocks import blockfactory
 
 GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 
-DOUBLECLICKTIME = 500
+DOUBLECLICKTIME = 300
 
 #userevent actions
 ACT_REFRESH = 0 #no keyword
 ACT_SCROLL = 1  #need keywords xoff, yoff
 ACT_DELETEBLOCK = 2  #need keyword todelete
 ACT_ADDBLOCK = 3 #need keyword line
+ACT_MOVECURSOR = 4 #no keyword
 
 
 class ScrollBlock(blockfactory(Block)):
@@ -111,6 +112,14 @@ class DrawMaze(Maze):
         self.scrollareas.add(ScrollBlock([0, 1000], [1000, 20], [0, 1]))
         self.scrollareas.add(ScrollBlock([-20, 0], [20, 1000], [-1, 0]))
 
+    @property
+    def croom(self):
+        return super(DrawMaze, self).croom
+
+    @croom.setter
+    def croom(self, val):
+        self._croom = val
+
     def draw(self, screen):
         """Draw the screen"""
         screen.fill(self.BGCOL)
@@ -120,7 +129,7 @@ class DrawMaze(Maze):
             for mrk in bot.getmarkers():
                 screen.blit(mrk.image, mrk.rect)
 
-        if self.cursor is not None:
+        if self.cursor is not None and self.cursor.cridx == self.croom.roompos:
             self.cursor.update(self.cpp[0], self.cpp[1])
             screen.blit(self.cursor.image, self.cursor.rect)
 
@@ -230,7 +239,7 @@ class NewBlockDialog(tk.Toplevel):
 
     def _recoverblocks(obj):
         """Recover the block types from the module using reflection"""
-        return inspect.isclass(obj) and issubclass(obj, Block) and obj.__name__ not in ['Block', 'Character']
+        return inspect.isclass(obj) and issubclass(obj, Block) and obj.__name__ not in ['Block', 'Character', 'Marker']
 
     allblocks = list(name for name, obj in inspect.getmembers(src.mzgblocks, _recoverblocks))
 
@@ -334,10 +343,14 @@ class BlockActions(tk.Toplevel):
 
     def act_move(self):
         copyline = self.refblock.reprline()
-        addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=copyline)
-        delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
-        pygame.event.post(addev)
-        pygame.event.post(delev)
+        if copyline.startswith('IN'):
+            newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_MOVECURSOR)
+            pygame.event.post(newev)
+        else:
+            addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=copyline)
+            delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
+            pygame.event.post(addev)
+            pygame.event.post(delev)
         self.destroy()
         
     def act_addmarker(self):
@@ -433,7 +446,6 @@ class App(tk.Tk):
                     sf.write(f"R {rm.roompos}\n")
                     for block in rm.allblocks.sprites():
                         sf.write(block.reprline() + '\n')
-                sf.write("\nIR " + str(self.maze.firstroom) + '\n')
                 sf.write(self.maze.cursor.reprline() + '\n')
 
     def addroom(self):
@@ -483,7 +495,7 @@ class App(tk.Tk):
 
     def pygameloop(self):
         """The editor main loop for the pygame part"""
-        time = 0
+        dbclock = pygame.time.Clock()
         while True:
             for event in pygame.event.get():
                 if event.type == pyloc.QUIT:
@@ -502,6 +514,8 @@ class App(tk.Tk):
                             self.maze.croom.addelem(lline)
                     elif event.action == ACT_DELETEBLOCK:
                         event.todelete.kill()
+                    elif event.action == ACT_MOVECURSOR:
+                        self.maze.cursor.cridx = self.maze.croom.roompos
                     else:
                         print(event.action)
                     self.maze.draw(self.pygscreen)
@@ -515,11 +529,8 @@ class App(tk.Tk):
                             if scb.rect.collidepoint(event.pos):
                                 break
                         else:
-                            ctm = pygame.time.get_ticks()
-                            dt = ctm - time
-                            if dt < DOUBLECLICKTIME:
+                            if dbclock.tick() < DOUBLECLICKTIME:
                                 chooser = NewBlockDialog(self, event.pos, self.maze.cpp)
-                            time = ctm
                 elif event.type == pyloc.MOUSEBUTTONUP and self.maze is not None:
                     self.maze.draw(self.pygscreen)
                     self.grabbed = None
@@ -543,13 +554,13 @@ class App(tk.Tk):
                             self.grabbed.aurect.y += event.rel[1]
                             self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
                             self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
-                            
+
             pygame.display.update()
             
     def grabblock(self, mpos):
         """grab a block to perform basic actions on it (moving, resizing, or open the BlockActions dialog)"""
         bll = self.maze.getallblocks(self.maze.croom)
-        if self.maze.firstroom == self.maze.croom.roompos:
+        if self.maze.cursor.cridx == self.maze.croom.roompos:
             bll.append(self.maze.cursor)
         
         for block in bll:

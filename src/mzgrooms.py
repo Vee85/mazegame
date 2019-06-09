@@ -190,11 +190,21 @@ class Maze:
         self.filename = fn
         self.rooms = None
         self.cursor = None
-        self.croom = None
+        self._croom = None
         self.cpp = None
         self.firstroom = None
         self.initcounters()
         self.maploader()
+
+    @property
+    def croom(self):
+        return self._croom
+
+    @croom.setter
+    def croom(self, val):
+        self._croom = val
+        if self.cursor is not None:
+            self.cursor.cridx = val.roompos
 
     def initcounters(self):
         """Reset the id generators of the block types which have an id"""
@@ -208,11 +218,7 @@ class Maze:
         if self.filename is not None:
             streamer = open(self.filename)
         else:
-            streamer = io.StringIO("NR 1\n\
-                                    R 0\n\
-                                    IR 0\n\
-                                    IP 50 50\n"
-                                    )
+            streamer = io.StringIO("NR 1\nR 0\nIN 0 50 50\n")
         
         with streamer as fob:
             #searching the first valid line: map dimension
@@ -236,10 +242,9 @@ class Maze:
                         if lline[0] == 'R' and len(lline) == 2:
                             ridx = int(lline[1])
                             self.rooms[ridx] = Room(ridx, self.isgame)
-                        elif lline[0] == 'IR' and len(lline) == 2:
+                        elif lline[0] == 'IN':
                             self.firstroom = int(lline[1])
-                        elif lline[0] == 'IP' and len(lline) == 3:
-                            curspos = list(map(int, lline[1:]))
+                            curspos = list(map(int, lline[2:]))
                         elif len(lline) >= 4:
                             self.rooms[ridx].addelem(lline)
                         else:
@@ -250,7 +255,7 @@ class Maze:
 
     def initcursor(self, cpos):
         """Create and initialize the player"""
-        self.cursor = Character(cpos)
+        self.cursor = Character(cpos, self.firstroom)
         self.cursor.setforcefield(0.0, 200.0)
 
     def scrollscreen(self, screen):

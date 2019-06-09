@@ -7,5 +7,4 @@ R 0
   W 1 300 500 100 100
 
 #start room and initial coordinates of cursor
-IR 0
-IP 100 600
+IR 0 100 600
