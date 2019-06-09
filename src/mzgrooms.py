@@ -66,13 +66,14 @@ class Room:
         self.bots = sprite.Group()
         self.doors = sprite.Group()
         self.keys = sprite.Group()
+        self.windblocks = sprite.Group()
         self.screens = np.array([1, 1])
 
     def addelem(self, lstpar):
         """Parse a text line (lstpar argument) to create the corresponding block"""
         blid = int(lstpar[1])
         bpos = list(map(int, lstpar[2:4]))
-        if lstpar[0] in ['W', 'L', 'T']:
+        if lstpar[0] in ['W', 'L', 'T', 'F']:
             bsize = list(map(int, lstpar[4:6]))
             if lstpar[0] == 'W':
                 crblock = Wall(blid, bpos, bsize)
@@ -83,6 +84,10 @@ class Room:
             elif lstpar[0] == 'T':
                 crblock = Deadlyblock(blid, bpos, bsize)
                 self.deathblocks.add(crblock)
+            elif lstpar[0] == 'F':
+                frc = list(map(int, lstpar[6:8]))
+                crblock = WindArea(blid, bpos, bsize, frc, bool(int(lstpar[8])))
+                self.windblocks.add(crblock)
         elif lstpar[0] == 'D':
             bsize = Door.rectsize
             crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])), self.isgame)
@@ -96,7 +101,7 @@ class Room:
             coordinates = list(map(int, lstpar[4:]))
             bsize = EnemyBot.rectsize
             crblock = EnemyBot(blid, bpos, self.isgame, coordinates)
-            self.bots.add(crblock)
+            self.bots.add(crblock)            
         else:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
 
@@ -137,7 +142,7 @@ class Room:
 
     def hoveringsprites(self):
         """Return a list with all the block sprites which can be crossed trought by the player"""
-        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites()
+        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windarea.sprites()
 
     def alldoorsid(self):
         """Return a list with all the door id"""

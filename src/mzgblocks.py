@@ -525,6 +525,50 @@ class EnemyBot(blockfactory(Block)):
             self.setspeed()
 
 
+class WindArea(blockfactory(Block)):
+    """A surface with an additional force field.
+
+    Children of Block. Can be visible or invisible.
+    Force field can be activated or disactivated by a button, and can be permanent or timed.
+    """
+
+    label = 'F'
+    BGCOL = (250, 250, 0)
+
+    def __init__(self, bid, pos, rsize, force, vis=True):
+        super(WindArea, self).__init__(bid, pos, rsize)
+        self.wind = np.array(force)
+        self.visible = vis
+        
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, boolvalue):
+        self._visible = boolvalue
+        self.showarea()
+
+    def showarea(self):
+        """Show / hide the icon of the key"""
+        if self.visible:
+            self.image.fill(self.BGCOL)
+        else:
+            self.image.fill((0, 0, 0))
+
+    def reprline(self):
+        """Override method of base class, adding custom information"""
+        baseline = super(WindArea, self).reprline()
+        ivis = 1 if self.visible else 0
+        return baseline + f" {self.wind[0]} {self.wind[1]} {ivis}"
+
+    @classmethod
+    def reprlinenew(cls, *args):
+        """Override method of base class, default line for Key"""
+        baseline = super(WindArea, cls).reprlinenew(*args)
+        return baseline + " 100 100 1" #@@@to be customized
+
+
 class Character(blockfactory(Block)):
     """A fixed size block, The cursor controlled by the player.
 
