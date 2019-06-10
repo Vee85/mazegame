@@ -533,11 +533,28 @@ class WindArea(blockfactory(Block)):
     """
 
     label = 'F'
-    BGCOL = (250, 250, 0)
+    WINDUP = pygame.image.load(os.path.join(IMAGE_DIR, "windarrow.png"))
+    WINDUPRI = pygame.image.load(os.path.join(IMAGE_DIR, "windarrowdiag.png"))
+    WINDLE = pygame.transform.rotate(WINDUP, 90)
+    WINDDO = pygame.transform.rotate(WINDUP, 180)
+    WINDRI = pygame.transform.rotate(WINDUP, 270)
+    WINDUPLE = pygame.transform.rotate(WINDUPRI, 90)
+    WINDDOLE = pygame.transform.rotate(WINDUPRI, 180)
+    WINDDORI = pygame.transform.rotate(WINDUPRI, 270)
+    _winddict = {0 : [np.array([0.0, -1.0]), WINDUP], 1 : [np.array([1.0, -1.0]), WINDUPRI], 2 : [np.array([1.0, 0.0]), WINDRI],
+                3 : [np.array([1.0, 1.0]), WINDDORI], 4 : [np.array([0.0, 1.0]), WINDDO], 5 : [np.array([-1.0, 1.0]), WINDDOLE],
+                6 : [np.array([-1.0, 0.0]), WINDLE], 7 : [np.array([-1.0, -1.0]), WINDUPLE]}
+    _forcefactor = 100.0
+    cursorinside = None
 
-    def __init__(self, bid, pos, rsize, force, vis=True):
+    def __init__(self, bid, pos, rsize, windpar, vis=True):
         super(WindArea, self).__init__(bid, pos, rsize)
-        self.wind = np.array(force)
+        self._windpar = windpar
+        try:
+            self.wind = self._winddict[self._windpar[0]][0] * self._windpar[1] * self._forcefactor
+            self.arrowimage = self._winddict[self._windpar[0]][1]
+        except KeyError as e:
+            raise Exception('Error in instantiating WindArea, direction should be an integer between 0 and 7') from e
         self.visible = vis
         
     @property
@@ -551,22 +568,34 @@ class WindArea(blockfactory(Block)):
 
     def showarea(self):
         """Show / hide the icon of the key"""
-        if self.visible:
-            self.image.fill(self.BGCOL)
+        if self._visible:
+            self.bg = self.arrowimage            
+            self.fillimage()
         else:
+            self.bg = None
             self.image.fill((0, 0, 0))
+
+    def entering_wind_event(self):
+        """Post the entering wind event to the pygame.event system"""
+        newev = pygame.event.Event(src.ENTERINGEVENT, wind=self.wind)
+        pygame.event.post(newev)
+
+    def exiting_wind_event(self):
+        """Post the exiting wind event to the pygame.event system"""
+        newev = pygame.event.Event(src.EXITINGEVENT, wind=np.array([0, 0]))
+        pygame.event.post(newev)
 
     def reprline(self):
         """Override method of base class, adding custom information"""
         baseline = super(WindArea, self).reprline()
         ivis = 1 if self.visible else 0
-        return baseline + f" {self.wind[0]} {self.wind[1]} {ivis}"
+        return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
 
     @classmethod
     def reprlinenew(cls, *args):
         """Override method of base class, default line for Key"""
         baseline = super(WindArea, cls).reprlinenew(*args)
-        return baseline + " 100 100 1" #@@@to be customized
+        return baseline + " 0 1 1" #@@@to be customized
 
 
 class Character(blockfactory(Block)):
@@ -660,7 +689,7 @@ class Character(blockfactory(Block)):
         x, y are the acceleration components. If y is None, x must be a list holding both components.
         """
         if y is None:
-            if isinstance(x, (tuple, list)):
+            if isinstance(x, (tuple, list, np.ndarray)):
                 self.ax = x[0]
                 self.ay = x[1]
             else:
@@ -744,6 +773,7 @@ class Character(blockfactory(Block)):
                 self.touchplane = False
             else:
                 self.touchplane = True
+            self.dvx = 0
             self.dvy = 0
 
         self.current_direction.clear()

@@ -66,7 +66,7 @@ class Room:
         self.bots = sprite.Group()
         self.doors = sprite.Group()
         self.keys = sprite.Group()
-        self.windblocks = sprite.Group()
+        self.windareas = sprite.Group()
         self.screens = np.array([1, 1])
 
     def addelem(self, lstpar):
@@ -87,7 +87,7 @@ class Room:
             elif lstpar[0] == 'F':
                 frc = list(map(int, lstpar[6:8]))
                 crblock = WindArea(blid, bpos, bsize, frc, bool(int(lstpar[8])))
-                self.windblocks.add(crblock)
+                self.windareas.add(crblock)
         elif lstpar[0] == 'D':
             bsize = Door.rectsize
             crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])), self.isgame)
@@ -101,7 +101,7 @@ class Room:
             coordinates = list(map(int, lstpar[4:]))
             bsize = EnemyBot.rectsize
             crblock = EnemyBot(blid, bpos, self.isgame, coordinates)
-            self.bots.add(crblock)            
+            self.bots.add(crblock)      
         else:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
 
@@ -142,7 +142,7 @@ class Room:
 
     def hoveringsprites(self):
         """Return a list with all the block sprites which can be crossed trought by the player"""
-        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windarea.sprites()
+        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windareas.sprites()
 
     def alldoorsid(self):
         """Return a list with all the door id"""
@@ -183,6 +183,7 @@ class Maze:
     """
     
     BGCOL = (0, 0, 0)
+    gravity = np.array([0.0, 200.0])
 
     def __init__(self, fn, isgame=True):
         """Initialization:
@@ -261,7 +262,7 @@ class Maze:
     def initcursor(self, cpos):
         """Create and initialize the player"""
         self.cursor = Character(cpos, self.firstroom)
-        self.cursor.setforcefield(0.0, 200.0)
+        self.cursor.setforcefield(self.gravity)
 
     def scrollscreen(self, screen):
         """Draw the next portion of the room on the screen"""
@@ -330,6 +331,10 @@ class Maze:
                     drawdoors = self.keytaken(event.key_id, event.openeddoor)
                     for drd in drawdoors:
                         screen.blit(drd.image, drd.rect)
+                elif event.type == src.ENTERINGEVENT:
+                    self.cursor.setforcefield(self.gravity + event.wind)
+                elif event.type == src.EXITINGEVENT:
+                    self.cursor.setforcefield(self.gravity)
                 elif event.type == src.DEATHEVENT:
                     for rr in self.rooms:
                         rr.empty()
@@ -368,6 +373,18 @@ class Maze:
                         lkk.takingkey_event()
                         lkk.taken = True
                         break
+
+            #adjusting force field if entering or leaving a windarea
+            if WindArea.cursorinside is None:
+                for wnd in self.croom.windareas:
+                    if wnd.aurect.contains(self.cursor.aurect):
+                        WindArea.cursorinside = wnd
+                        wnd.entering_wind_event()
+                        break
+            else:
+                if not WindArea.cursorinside.aurect.contains(self.cursor.aurect):
+                    WindArea.cursorinside.exiting_wind_event()
+                    WindArea.cursorinside = None
 
             #checking if character is dying touching a deadly block or a bot
             for ltt in self.croom.deathblocks.sprites() + self.croom.bots.sprites():
