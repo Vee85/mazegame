@@ -458,12 +458,15 @@ class App(tk.Tk):
     def delroom(self):
         """Delete the shown room from the maze"""
         if self.maze is not None:
-            answer = messagebox.askyesno("WARNING", "You are deleting the shown Room.\nThere is no going back.\nAre you sure?")
-            if answer:
-                self.maze.rooms = np.delete(self.maze.rooms, self.maze.croom.roompos)
-                self.maze.croom = self.maze.rooms[0]
-                self.maze.draw(self.pygscreen)
-                self.updateinfoarea(0)
+            if self.maze.cursor.cridx == self.maze.croom.roompos:
+                messagebox.showinfo("WARNING", "Cannot delete a room of the character is inside.")
+            else:
+                answer = messagebox.askyesno("WARNING", "You are deleting the shown Room.\nThere is no going back.\nAre you sure?")
+                if answer:
+                    self.maze.rooms = np.delete(self.maze.rooms, self.maze.croom.roompos)
+                    self.maze.croom = self.maze.rooms[0]
+                    self.maze.draw(self.pygscreen)
+                    self.updateinfoarea(0)
 
     def showroom(self, off):
         """Select a room and show it, off is the offset from current shown room"""
