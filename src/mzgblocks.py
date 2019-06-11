@@ -700,7 +700,7 @@ class Character(blockfactory(Block)):
 
     def applyforce(self):
         """Apply the force field to get the velocity increment"""
-        self.dvx += self.ax * src.TPF
+        self.dvx += (self.ax - 0.5*self.dvx) * src.TPF
         self.dvy += self.ay * src.TPF
 
     def movecharacter(self, groupwalls, groupladders):
