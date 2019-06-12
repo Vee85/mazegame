@@ -90,17 +90,17 @@ class Room:
                 self.windareas.add(crblock)
         elif lstpar[0] == 'D':
             bsize = Door.rectsize
-            crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])), self.isgame)
+            crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])))
             self.doors.add(crblock)
         elif lstpar[0] == 'K':
             dooridx = list(map(int, lstpar[4:6]))
             bsize = Key.rectsize
-            crblock = Key(blid, bpos, dooridx, self.isgame)
+            crblock = Key(blid, bpos, dooridx)
             self.keys.add(crblock)
         elif lstpar[0] == 'B':
             coordinates = list(map(int, lstpar[4:]))
             bsize = EnemyBot.rectsize
-            crblock = EnemyBot(blid, bpos, self.isgame, coordinates)
+            crblock = EnemyBot(blid, bpos, coordinates)
             self.bots.add(crblock)      
         else:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))

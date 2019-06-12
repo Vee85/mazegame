@@ -52,6 +52,7 @@ from src.mzgblocks import Block
 from src.mzgblocks import blockfactory
 
 GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
+src.mzgblocks.ISGAME = False
 
 DOUBLECLICKTIME = 300
 
@@ -191,7 +192,7 @@ class Keyinfo(Blockinfo):
     def __init__(self, parent):
         """Initialization"""
         super(Keyinfo, self).__init__(parent)
-        self.labelone = tk.Label(self, text="door's ids (separated by spaces)")
+        self.labelone = tk.Label(self, text="Door's ids (separated by spaces)")
         self.labelone.grid(row=0, column=0)
         self.opened = tk.Entry(self)
         self.opened.grid(row=1, column=0)
@@ -227,6 +228,42 @@ class EnemyBotinfo(Blockinfo):
         ux, uy = src.PosManager.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
         ll = [(ux + (i*50), uy) for i in range(1, int(self.nummarker.get())+1)]
         return [el for sl in ll for el in sl]
+
+
+class WindAreainfo(Blockinfo):
+    """Small box dialog to let the user enter the extra parameters of a WindArea block.
+
+    Child of Blockinfo.
+    """
+
+    windvalues = {"UP" : 0, "UP-RIGHT" : 1, "RIGHT" : 2, "DOWN-RIGHT" : 3, "DOWN" : 4, "DOWN-LEFT" : 5, "LEFT" : 6, "TOP-LEFT" : 7}
+    windforces = {"LIGHT" : 1, "MODERATE" : 2, "STRONG" : 3, "VERY STRONG" : 4}
+
+    def __init__(self, parent):
+        """Initialization"""
+        super(WindAreainfo, self).__init__(parent)
+        self.labeldir = tk.Label(self, text="Wind direction")
+        self.labeldir.grid(row=0, column=0, sticky="ew")
+        self.winddir = ttk.Combobox(self, values=list(self.windvalues.keys()))
+        self.winddir.grid(row=0, column=1, sticky="ew")
+        self.winddir.current(0)
+        
+        self.labelstre = tk.Label(self, text="Wind strenght")
+        self.labelstre.grid(row=1, column=0, sticky="ew")
+        self.windstre = ttk.Combobox(self, values=list(self.windforces.keys()))
+        self.windstre.grid(row=1, column=1, sticky="ew")
+        self.windstre.current(0)
+
+        self.visvar = tk.IntVar()
+        self.windvis = tk.Checkbutton(self, text="Area visible?", variable=self.visvar)
+        self.windvis.grid(row=2, column=0, columnspan=2, sticky="ew")
+
+        self.labelinfo = tk.Label(self, text="NOTE: A moderate strength\nis equivalent to gravity")
+        self.labelinfo.grid(row=3, column=0, columnspan=2, sticky="ew")
+
+    def getinfo(self):
+        """Overriding method: return a list of the extra parameters"""
+        return [self.windvalues[self.winddir.get()], self.windforces[self.windstre.get()], self.visvar.get()]
 
 
 class NewBlockDialog(tk.Toplevel):
@@ -271,7 +308,7 @@ class NewBlockDialog(tk.Toplevel):
 
     def showcustompanel(self, event):
         """callback to be executed on combobox selection, shows a Blockinfo child"""
-        infoblocks = {"Door" : Doorinfo, "Key" : Keyinfo, "EnemyBot" : EnemyBotinfo}
+        infoblocks = {"Door" : Doorinfo, "Key" : Keyinfo, "EnemyBot" : EnemyBotinfo, "WindArea" : WindAreainfo}
         if self.custompanel is not None:
             self.custompanel.grid_forget()
         try:
@@ -286,23 +323,25 @@ class NewBlockDialog(tk.Toplevel):
             blocktype = self.blocktypes.get()
             if blocktype in self.allblocks:
                 nid = next(getattr(src.mzgblocks, blocktype)._idcounter)
-                commonparam = [nid] + src.PosManager.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
+                idepos = [nid] + src.PosManager.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
+                addparam = []
                 if self.custompanel is not None:
                     extrapar = self.custompanel.getinfo()
                     if extrapar is None:
                         return
-                    commonparam.extend(extrapar)
-                newline = getattr(src.mzgblocks, blocktype).reprlinenew(*commonparam)
+                    addparam.extend(extrapar)
+                newline = getattr(src.mzgblocks, blocktype).reprlinenew(idepos, *addparam)
                 newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
                 pygame.event.post(newev)
             elif blocktype == 'Door Set':
                 bltp = ['Door', 'Door', 'Key']
                 nids = [next(src.mzgblocks.Door._idcounter), next(src.mzgblocks.Door._idcounter), next(src.mzgblocks.Key._idcounter)]
-                params = [[nids[0]] + list(self.blockpos) + [nids[1], 1],
-                          [nids[1]] + [self.blockpos[0]+50, self.blockpos[1]] + [nids[0], 1],
-                          [nids[2]] + [self.blockpos[0]+100, self.blockpos[1]] + nids[0:2]]
+                params = [[[nids[0]] + list(self.blockpos), [nids[1], 1]],
+                          [[nids[1]] + [self.blockpos[0]+50, self.blockpos[1]], [nids[0], 1]],
+                          [[nids[2]] + [self.blockpos[0]+100, self.blockpos[1]], nids[0:2]]]
                 for btp, prm in zip(bltp, params):
-                    newline = getattr(src.mzgblocks, btp).reprlinenew(*prm)
+                    newline = getattr(src.mzgblocks, btp).reprlinenew(prm[0], *prm[1])
+                    print(newline)
                     newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
                     pygame.event.post(newev)
 

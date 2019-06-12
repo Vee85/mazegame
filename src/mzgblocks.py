@@ -57,6 +57,7 @@ import pygame.locals as pyloc
 import src
 
 IMAGE_DIR = os.path.join(src.MAIN_DIR, '../images')
+ISGAME = True
 
 
 class Block(sprite.Sprite, src.PosManager):
@@ -102,7 +103,7 @@ def blockfactory(cls):
             self.image = pygame.Surface(self.sizetopix(rsize))
             self.aurect = src.FlRect(pos[0], pos[1], rsize[0], rsize[1])
             self.bg = bg
-            self.fillimage()
+            Fblock.fillimage(self) #to avoid calling overriden versions
 
             #place block to its coordinates
             self.update(0, 0)
@@ -154,23 +155,24 @@ def blockfactory(cls):
             return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
 
         @classmethod
-        def reprlinenew(cls, *args):
+        def reprlinenew(cls, idepos, *args):
             """Return default text line for a new block in map file format (used by the editor)
 
-            Classmethod. *args are positional arguments, to be added to the list, and vary
-            from block type to block type. Defaults are:
-            - x, y coordinates of the top-left vertex of the rectangle.
+            Classmethod. idepos is a 3-length list containing the id and x y coordinates
+            *args are positional arguments, to be added to the list, and vary from block type to block type.
+            Defaults *args is empty.
             Block types in need of a custom line override this method and may require a different
             set of positional arguments.
             """
             if cls.__name__ == "Fblock":
                 raise RuntimeError("reprlinenew classmethod should not be called by a Fblock instance!")
 
-            lab = f"{cls.label} " + " ".join(map(str, args))
+            lab = f"{cls.label} " + " ".join(map(str, idepos))
+            addpar = " ".join(map(str, args))
             if hasattr(cls, "rectsize"):
-                return lab + f" {cls.rectsize[0]} {cls.rectsize[1]}"
+                return lab + " " + addpar
             else:
-                return lab + " 100 50"
+                return lab + " 100 50 " + addpar
 
         def collidinggroup(self, group):
             """Return other sprites of a group colliding with this sprite"""
@@ -201,22 +203,25 @@ class Marker(blockfactory(Block)):
     label = 'M'
     BGCOL = (100, 100, 100)
     
-    def __init__(self, bid, pos, rsize, ref, isgame=True):
+    def __init__(self, bid, pos, rsize, ref):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         ref -- reference to another Block which uses this Marker
-        isgame -- boolean value, allows extra actions depending if the class is called
         by the game or by the editor.
         """
         self.ref = ref
-        if isgame:
+        if ISGAME:
             bg = None
         else:
             bg = self.BGCOL
         super(Marker, self).__init__(bid, pos, rsize, bg)
-        if not isgame:
+        self.fillimage()
+        
+    def fillimage(self):
+        super(Marker, self).fillimage()
+        if not ISGAME:
             self.blitinfo(self.ref, self._id)
 
     def reprline(self):
@@ -312,7 +317,7 @@ class Door(blockfactory(Block)):
     OEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "openexit.png"))
     OPENEXIT = pygame.transform.scale(OEXIT, src.PosManager.sizetopix(rectsize))
 
-    def __init__(self, bid, pos, doorid, lock, isgame):
+    def __init__(self, bid, pos, doorid, lock):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
@@ -322,7 +327,11 @@ class Door(blockfactory(Block)):
         super(Door, self).__init__(bid, pos, self.rectsize)
         self.destination = doorid
         self.locked = bool(lock)
-        if not isgame:
+        self.fillimage()
+        
+    def fillimage(self):
+        super(Door, self).fillimage()
+        if not ISGAME:
             self.blitinfo(self._id, self.destination)
 
     @property
@@ -356,11 +365,6 @@ class Door(blockfactory(Block)):
         """Override method of base class, adding custom informations"""
         ilock = 1 if self.locked else 0
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
-
-    @classmethod
-    def reprlinenew(cls, *args):
-        """Override method of base class, default line for Door"""
-        return f"{cls.label} " + " ".join(map(str, args))
         
 
 class Key(blockfactory(Block)):
@@ -381,7 +385,7 @@ class Key(blockfactory(Block)):
     RAWIMKEY = pygame.image.load(os.path.join(IMAGE_DIR, "key.png"))
     IMKEY = pygame.transform.scale(RAWIMKEY, src.PosManager.sizetopix(rectsize))
 
-    def __init__(self, bid, pos, dooridlist, isgame):
+    def __init__(self, bid, pos, dooridlist):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
@@ -390,7 +394,11 @@ class Key(blockfactory(Block)):
         super(Key, self).__init__(bid, pos, self.rectsize)
         self.whoopen = dooridlist
         self.taken = False
-        if not isgame:
+        self.fillimage()
+
+    def fillimage(self):
+        super(Key, self).fillimage()
+        if not ISGAME:
             self.blitinfo(*self.whoopen)
 
     @property
@@ -418,11 +426,6 @@ class Key(blockfactory(Block)):
         """Override method of base class, adding custom informations"""
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
 
-    @classmethod
-    def reprlinenew(cls, *args):
-        """Override method of base class, default line for Key"""
-        return f"  {cls.label} " + " ".join(map(str, args))
-
 
 class EnemyBot(blockfactory(Block)):
     """A fixed size block, it represents a enemy moving on a prefixed path. 
@@ -441,31 +444,29 @@ class EnemyBot(blockfactory(Block)):
     actionmenu = dict(Block.actionmenu)
     actionmenu["Add Marker"] = "addmarker"
 
-    def __init__(self, bid, pos, isgame, *coordlist):
+    def __init__(self, bid, pos, *coordlist):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
-        isgame -- boolean value, allows extra actions depending if the class is called
         *coordlist -- variadic, flat list of x y coordinates, used to create the Markers. Each pair
         represent the top left corner of the Marker rectangle.
         """
         super(EnemyBot, self).__init__(bid, pos, self.rectsize, self.BGCOL)
         Marker.initcounter()
         coordpoints = [crd for crd in src.pairextractor(*coordlist)] + [pos]
-        self.pathmarkers = sprite.Group([Marker(next(Marker._idcounter), cppos, self.rectsize, self._id, isgame) for cppos in coordpoints]) #id of markers
+        self.pathmarkers = sprite.Group([Marker(next(Marker._idcounter), cppos, self.rectsize, self._id) for cppos in coordpoints]) #id of markers
         self.setspeed()
-        if not isgame:
+        self.fillimage()
+        
+    def fillimage(self):
+        super(EnemyBot, self).fillimage()
+        if not ISGAME:
             self.blitinfo(self._id)
         
     def reprline(self):
         """Override method of base class, adding custom informations"""
         flattencoords = [i for pp in self.getmarkers() for i in [pp.aurect.x, pp.aurect.y]]
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, flattencoords))
-
-    @classmethod
-    def reprlinenew(cls, *args):
-        """Override method of base class, default line for EnemyBot"""
-        return f"{cls.label} " + " ".join(map(str, args))
 
     def getmarkers(self):
         """Return all the Markers but the one equal to enemy initial position"""
@@ -556,7 +557,19 @@ class WindArea(blockfactory(Block)):
         except KeyError as e:
             raise Exception('Error in instantiating WindArea, direction should be an integer between 0 and 7') from e
         self.visible = vis
-        
+
+    def fillimage(self):
+        """Override"""
+        if self._visible:
+            self.bg = self.arrowimage
+            super(WindArea, self).fillimage()
+        else:
+            self.bg = None
+            self.image.fill((0, 0, 0))
+        if not ISGAME:
+            pygame.draw.rect(self.image, (100, 0, 0), self.image.get_rect(), 10)
+            self.blitinfo(*self._windpar)
+            
     @property
     def visible(self):
         return self._visible
@@ -564,16 +577,7 @@ class WindArea(blockfactory(Block)):
     @visible.setter
     def visible(self, boolvalue):
         self._visible = boolvalue
-        self.showarea()
-
-    def showarea(self):
-        """Show / hide the icon of the key"""
-        if self._visible:
-            self.bg = self.arrowimage            
-            self.fillimage()
-        else:
-            self.bg = None
-            self.image.fill((0, 0, 0))
+        self.fillimage()
 
     def entering_wind_event(self):
         """Post the entering wind event to the pygame.event system"""
@@ -590,12 +594,6 @@ class WindArea(blockfactory(Block)):
         baseline = super(WindArea, self).reprline()
         ivis = 1 if self.visible else 0
         return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
-
-    @classmethod
-    def reprlinenew(cls, *args):
-        """Override method of base class, default line for Key"""
-        baseline = super(WindArea, cls).reprlinenew(*args)
-        return baseline + " 0 1 1" #@@@to be customized
 
 
 class Character(blockfactory(Block)):
