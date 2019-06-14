@@ -239,22 +239,23 @@ class WindAreainfo(Blockinfo):
     windvalues = {"UP" : 0, "UP-RIGHT" : 1, "RIGHT" : 2, "DOWN-RIGHT" : 3, "DOWN" : 4, "DOWN-LEFT" : 5, "LEFT" : 6, "TOP-LEFT" : 7}
     windforces = {"LIGHT" : 1, "MODERATE" : 2, "STRONG" : 3, "VERY STRONG" : 4}
 
-    def __init__(self, parent):
+    def __init__(self, parent, iniwd=0, inistre=0, inivis=0):
         """Initialization"""
         super(WindAreainfo, self).__init__(parent)
         self.labeldir = tk.Label(self, text="Wind direction")
         self.labeldir.grid(row=0, column=0, sticky="ew")
         self.winddir = ttk.Combobox(self, values=list(self.windvalues.keys()))
         self.winddir.grid(row=0, column=1, sticky="ew")
-        self.winddir.current(0)
+        self.winddir.current(iniwd)
         
         self.labelstre = tk.Label(self, text="Wind strenght")
         self.labelstre.grid(row=1, column=0, sticky="ew")
         self.windstre = ttk.Combobox(self, values=list(self.windforces.keys()))
         self.windstre.grid(row=1, column=1, sticky="ew")
-        self.windstre.current(0)
+        self.windstre.current(inistre-1) #-1 because windforces start from 1
 
         self.visvar = tk.IntVar()
+        self.visvar.set(inivis)
         self.windvis = tk.Checkbutton(self, text="Area visible?", variable=self.visvar)
         self.windvis.grid(row=2, column=0, columnspan=2, sticky="ew")
 
@@ -366,21 +367,22 @@ class BlockActions(tk.Toplevel):
         self.refblock = refblock
         self.title("Edit Block")
         self.info = tk.Label(self, text="To move a block, move to\nthe destination room before\nclicking the button Move.")
-        self.info.pack(side="top")
+        self.info.grid(row=0, column=0, sticky="ew")
         
         self.actbuttons = []
-        for key, entry in self.refblock.actionmenu.items():
+        for i, (key, entry) in enumerate(self.refblock.actionmenu.items()):
             bb = tk.Button(self, text=key, command=getattr(self, f"act_{entry}"))
-            bb.pack(side="top")
+            bb.grid(row=i+1, column=0, sticky="ew")
             self.actbuttons.append(bb)
 
     def act_delete(self):
-        """Post the dCT_DELETEBLOCK signal to the pygame event system, to delete the selected block"""
+        """Post the ACT_DELETEBLOCK signal to the pygame event system, to delete the selected block"""
         newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
         pygame.event.post(newev)
         self.destroy()
 
     def act_move(self):
+        """Move select block to another room"""
         copyline = self.refblock.reprline()
         if copyline.startswith('IN'):
             newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_MOVECURSOR)
@@ -393,9 +395,33 @@ class BlockActions(tk.Toplevel):
         self.destroy()
         
     def act_addmarker(self):
+        """Add a marker to a enemybot"""
         self.refblock.addmarker(self.refblock.aurect.x + 50, self.refblock.aurect.y)
         newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
         pygame.event.post(newev)
+
+    def act_editwind(self):            
+        """Edit windarea force options (calling another dialog)"""
+        def callok(tp, wa):
+            params = tp.infoarea.getinfo()
+            wa._windpar[0] = params[0]
+            wa._windpar[1] = params[1]
+            wa.visible = params[2]
+            newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
+            pygame.event.post(newev)
+            tp.destroy()
+
+        def callclose(tp):
+            tp.destroy()
+        
+        topdial = tk.Toplevel()
+        topdial.title("Edit wind parameter")
+        topdial.infoarea = WindAreainfo(topdial, self.refblock._windpar[0], self.refblock._windpar[1], self.refblock.visible)
+        topdial.infoarea.grid(row=0, column=0, columnspan=2, sticky="ew")
+        topdial.okbutton = tk.Button(topdial, text="Edit block", command=lambda : callok(topdial, self.refblock))
+        topdial.okbutton.grid(row=1, column=0, sticky="ew")
+        topdial.cancelbutton = tk.Button(topdial, text="Cancel", command=lambda : callclose(topdial))
+        topdial.cancelbutton.grid(row=1, column=1, sticky="ew")
 
 
 class App(tk.Tk):

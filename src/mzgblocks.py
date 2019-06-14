@@ -548,12 +548,14 @@ class WindArea(blockfactory(Block)):
     _forcefactor = 100.0
     cursorinside = None
 
+    actionmenu = dict(Block.actionmenu)
+    actionmenu["Edit wind"] = "editwind"
+
     def __init__(self, bid, pos, rsize, windpar, vis=True):
         super(WindArea, self).__init__(bid, pos, rsize)
         self._windpar = windpar
         try:
             self.wind = self._winddict[self._windpar[0]][0] * self._windpar[1] * self._forcefactor
-            self.arrowimage = self._winddict[self._windpar[0]][1]
         except KeyError as e:
             raise Exception('Error in instantiating WindArea, direction should be an integer between 0 and 7') from e
         self.visible = vis
@@ -561,7 +563,7 @@ class WindArea(blockfactory(Block)):
     def fillimage(self):
         """Override"""
         if self._visible:
-            self.bg = self.arrowimage
+            self.bg = self._winddict[self._windpar[0]][1]
             super(WindArea, self).fillimage()
         else:
             self.bg = None
