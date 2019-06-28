@@ -1,0 +1,2 @@
+Grid
+class GridSupport created. Movement is aligned correctly, resizing not yet. Need to fix drawing: grid need to stay on the screen.

@@ -129,8 +129,8 @@ class PosManager:
         Size is an (x, y) pair denoting x and y sizes of a rect
         """
         xx, yy = PosManager._argspar(pp)
-        px = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        py = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        px = int(round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)))
+        py = int(round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)))
         return [px, py]
 
     @staticmethod

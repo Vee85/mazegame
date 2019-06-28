@@ -93,7 +93,8 @@ def blockfactory(cls):
         
         def __init__(self, bid, pos, rsize, bg=None):
             """Initialization:
-            
+
+            bid -- sprite id
             pos -- two-length list with x, y coordinates of top-left corner of the rectangle
             rsize -- two-length list with width and height of the rectangle
             bg -- background color (3-length RGB tuple) or a pygame.Surface representing a tile
@@ -206,6 +207,7 @@ class Marker(blockfactory(Block)):
     def __init__(self, bid, pos, rsize, ref):
         """Initialization:
         
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         ref -- reference to another Block which uses this Marker
@@ -246,6 +248,7 @@ class Wall(blockfactory(Block)):
     def __init__(self, bid, pos, rsize):
         """Initialization:
         
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
@@ -264,6 +267,7 @@ class Ladder(blockfactory(Block)):
     def __init__(self, bid, pos, rsize):
         """Initialization:
         
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
@@ -282,6 +286,7 @@ class Deadlyblock(blockfactory(Block)):
     def __init__(self, bid, pos, rsize):
         """Initialization:
         
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
@@ -319,7 +324,8 @@ class Door(blockfactory(Block)):
 
     def __init__(self, bid, pos, doorid, lock):
         """Initialization:
-        
+
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         doorid -- the id of the other end of the passage (the destination door).
         lock -- boolean or anythin that can be casted to boolean. If true the door is locked.
@@ -387,7 +393,8 @@ class Key(blockfactory(Block)):
 
     def __init__(self, bid, pos, dooridlist):
         """Initialization:
-        
+
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         dooridlist --  a list of the door ids which the key opens.
         """
@@ -447,6 +454,7 @@ class EnemyBot(blockfactory(Block)):
     def __init__(self, bid, pos, *coordlist):
         """Initialization:
         
+        bid -- sprite id
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         *coordlist -- variadic, flat list of x y coordinates, used to create the Markers. Each pair
         represent the top left corner of the Marker rectangle.
@@ -552,6 +560,14 @@ class WindArea(blockfactory(Block)):
     actionmenu["Edit wind"] = "editwind"
 
     def __init__(self, bid, pos, rsize, windpar, vis=True):
+        """Inizializaton:
+
+        bid -- sprite id
+        pos -- two-length list with x, y coordinates of top-left corner of the rectangle
+        rsize -- two-length list with width and height of the rectangle
+        windpar -- two-length list containing two integers: the first from 0 to 7 indicates the wind direction
+        the second indicates the strength of the wind. Actual wind force is this integer times 100
+        vis -- boolean, in False windarea is invisible"""
         super(WindArea, self).__init__(bid, pos, rsize)
         self._windpar = windpar
         try:
@@ -619,6 +635,7 @@ class Character(blockfactory(Block)):
         """Initialization:
         
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
+        iniroom -- id of initial room
         """
         super(Character, self).__init__(0, pos, self.rectsize, self.CURSORCOL)
         self.current_direction = set()
