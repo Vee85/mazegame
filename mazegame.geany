@@ -27,14 +27,14 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=4
+current_page=1
 FILE_NAME_0=1245;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fmazegame.py;0;4
-FILE_NAME_1=17979;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fmazeditor.py;0;4
+FILE_NAME_1=18099;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fmazeditor.py;0;4
 FILE_NAME_2=2502;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Ftestmap.py;0;4
-FILE_NAME_3=7235;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2F__init__.py;0;4
-FILE_NAME_4=5512;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2Fmzgblocks.py;0;4
+FILE_NAME_3=6174;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2F__init__.py;0;4
+FILE_NAME_4=5514;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2Fmzgblocks.py;0;4
 FILE_NAME_5=12894;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2Fmzgrooms.py;0;4
-FILE_NAME_6=1493;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2Fmzgmenu.py;0;4
+FILE_NAME_6=1334;Python;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fsrc%2Fmzgmenu.py;0;4
 FILE_NAME_7=2;None;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fgamemaps%2Fmapexample1;0;4
 FILE_NAME_8=3;None;0;EUTF-8;0;1;0;%2Fhome%2Fvalentino%2Fprogexercise%2Fpython%2Ftestgame%2Fmaze2D%2Fgamemaps%2Fmapexample2;0;4
 
