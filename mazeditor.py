@@ -124,7 +124,6 @@ class DrawMaze(Maze):
 
     def draw(self, screen):
         """Draw the screen"""
-        screen.fill(self.BGCOL)
         self.croom.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen)
         for bot in self.croom.bots.sprites():
@@ -446,11 +445,11 @@ class GridSupport(src.PosManager):
         
     def xcs(self, xoff):
         """Return x coordinates of the grid. xoff is the screen offset on x coordinate"""
-        return xoff + self._xcs
+        return (xoff*self.SIZE_X) + self._xcs
 
     def ycs(self, yoff):
         """Return y coordinates of the grid. yoff is the screen offset on y coordinate"""
-        return yoff + self._ycs
+        return (yoff*self.SIZE_Y) + self._ycs
 
     def resetblock(self, off, block, issize):
         """Reset block position
@@ -518,7 +517,7 @@ class App(tk.Tk):
         self.prevroombutton.grid(row=2, column=3, sticky="ew", columnspan=3)
 
         self.gridflag = tk.IntVar()
-        self.gridopt = tk.Checkbutton(self, text="Stick to the grid.", variable=self.gridflag, command=self.griddraw)
+        self.gridopt = tk.Checkbutton(self, text="Stick to the grid.", variable=self.gridflag, command=self.draw)
         self.gridopt.grid(row=3, column=1, sticky="ew", columnspan=4)
 
         self.infoarea = tk.Text(self, height=5)
@@ -584,7 +583,7 @@ class App(tk.Tk):
                 if answer:
                     self.maze.rooms = np.delete(self.maze.rooms, self.maze.croom.roompos)
                     self.maze.croom = self.maze.rooms[0]
-                    self.maze.draw(self.pygscreen)
+                    self.draw()
                     self.updateinfoarea(0)
 
     def showroom(self, off):
@@ -593,7 +592,7 @@ class App(tk.Tk):
             idx = self.maze.croom.roompos + off
             if 0 <= idx < len(self.maze.rooms):
                 self.maze.croom = self.maze.rooms[idx]
-                self.maze.draw(self.pygscreen)
+                self.draw()
                 self.updateinfoarea(idx)
 
     def updateinfoarea(self, nroom=None):
@@ -615,18 +614,16 @@ class App(tk.Tk):
         """Open a BlockAction, slblock is the block affected"""
         dlg = BlockActions(self, slblock)
 
-    def griddraw(self):
+    def draw(self):
+        self.pygscreen.fill(self.maze.BGCOL)
         if self.gridflag.get():
             #pretending that offset is always zero when drawing
             for x in self.gridsupport.xcs(0):
                 pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (x, 0)), src.PosManager.postopix(0, 0, (x, src.PosManager.SIZE_X)))
             for y in self.gridsupport.ycs(0):
                 pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (0, y)), src.PosManager.postopix(0, 0, (src.PosManager.SIZE_Y, y)))
-        else:
-            #this will redraw the blocks without the grid
-            newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
-            pygame.event.post(newev)
-        
+        self.maze.draw(self.pygscreen)
+            
     def pygameloop(self):
         """The editor main loop for the pygame part"""
         dbclock = pygame.time.Clock()
@@ -654,7 +651,7 @@ class App(tk.Tk):
                         self.gridsupport.resetblock(self.maze.cpp, event.block, event.which)
                     else:
                         print(event.action)
-                    self.maze.draw(self.pygscreen)
+                    self.draw()
                 elif event.type == pyloc.KEYDOWN:
                     if event.key == pyloc.K_LCTRL and self.grabbed is not None and self.gridflag.get():
                         stickev = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=0, block=self.grabbed)
@@ -680,7 +677,7 @@ class App(tk.Tk):
                         wh = 1 if pygame.key.get_pressed()[pyloc.K_LCTRL] else 0
                         stickev = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=wh, block=self.grabbed)
                         pygame.event.post(stickev)
-                    self.maze.draw(self.pygscreen)
+                    self.draw()
                     self.grabbed = None
                     for scb in self.maze.scrollareas.sprites():
                         if scb.rect.collidepoint(event.pos):
