@@ -1,2 +1,0 @@
-Grid fix
-class GridSupport edited. Resizing is aligned correctly, now using a proper event for both resizing and moving reposition. Need to fix drawing: grid need to stay on the screen.
