@@ -62,6 +62,7 @@ ACT_SCROLL = 1  #need keywords xoff, yoff
 ACT_DELETEBLOCK = 2  #need keyword todelete
 ACT_ADDBLOCK = 3 #need keyword line
 ACT_MOVECURSOR = 4 #no keyword
+ACT_STICKGRID = 5 #need keywords block, which
 
 
 class ScrollBlock(blockfactory(Block)):
@@ -119,11 +120,11 @@ class DrawMaze(Maze):
 
     @croom.setter
     def croom(self, val):
+        #cannot use super here, we want to override the parent behaviour
         self._croom = val
 
     def draw(self, screen):
-        """Draw the screen"""
-        screen.fill(self.BGCOL)
+        """Draw the blocks on the screen"""
         self.croom.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen)
         for bot in self.croom.bots.sprites():
@@ -425,35 +426,52 @@ class BlockActions(tk.Toplevel):
 
 
 class GridSupport(src.PosManager):
-    GRIDSIZE = 100 #in arbitrary units
+    """Class to automate block resetting. Blocks stay sticked to a grid.
+
+    Child of PosManager
+    If defines the grid (horizontal and vertical axes) and provide the
+    useful resetblock method to reset a block position and size such that
+    it stay sticked to the closer grid lines.
+    """
+
+    GRIDSIZE = 10 #in arbitrary units
     GRIDCOL = (0, 100, 200)
     
     def __init__(self):
+        """Initialization."""
+        #no need to store an offset
+        self.makegrid()
+
+    def makegrid(self):
         self._xcs = np.arange(0, self.SIZE_X+1, self.GRIDSIZE)
         self._ycs = np.arange(0, self.SIZE_Y+1, self.GRIDSIZE)
-        #no need to store the offset.
         
     def xcs(self, xoff):
-        return xoff + self._xcs
+        """Return x coordinates of the grid. xoff is the screen offset on x coordinate"""
+        return (xoff*self.SIZE_X) + self._xcs
 
     def ycs(self, yoff):
-        return yoff + self._ycs
+        """Return y coordinates of the grid. yoff is the screen offset on y coordinate"""
+        return (yoff*self.SIZE_Y) + self._ycs
 
-    def resetaurect(self, off, blockaurect):
-        xshift = blockaurect.x - self.xcs(off[0])
-        corrpos = np.absolute(xshift).argmin()
-        blockaurect.x -= xshift[corrpos]
-        yshift = blockaurect.y - self.ycs(off[1])
-        corrpos = np.absolute(yshift).argmin()
-        blockaurect.y -= yshift[corrpos]
+    def resetblock(self, off, block, issize):
+        """Reset block position
 
-    def resizeaurect(self, off, blockaurect):
-        xshift = blockaurect.right - self.xcs(off[0])
-        corrpos = np.absolute(xshift).argmin()
-        blockaurect.width -= xshift[corrpos]
-        yshift = blockaurect.bottom - self.ycs(off[1])
-        corrpos = np.absolute(yshift).argmin()
-        blockaurect.height -= yshift[corrpos]
+        off - 2-length list, tuple or array, the (x, y) offset
+        block - reference to the block to be reset.
+        issise - if True, block size is modified, its position otherwise.
+        """
+        rx = block.aurect.right if issize else block.aurect.x
+        ry = block.aurect.bottom if issize else block.aurect.y
+        xshift = rx - self.xcs(off[0])
+        xcp = np.absolute(xshift).argmin()
+        yshift = ry - self.ycs(off[1])
+        ycp = np.absolute(yshift).argmin()
+        if issize:
+            block.rsize = [block.aurect.width - xshift[xcp], block.aurect.height - yshift[ycp]]
+        else:
+            block.aurect.x -= xshift[xcp]
+            block.aurect.y -= yshift[ycp]
 
 
 class App(tk.Tk):
@@ -502,8 +520,15 @@ class App(tk.Tk):
         self.prevroombutton.grid(row=2, column=3, sticky="ew", columnspan=3)
 
         self.gridflag = tk.IntVar()
-        self.gridopt = tk.Checkbutton(self, text="Stick to the grid.", variable=self.gridflag, command=self.griddraw)
-        self.gridopt.grid(row=3, column=1, sticky="ew", columnspan=4)
+        self.gridopt = tk.Checkbutton(self, text="Stick to the grid.", variable=self.gridflag, command=self.draw)
+        self.gridopt.grid(row=3, column=1, sticky="ew")
+
+        self.gridstep = tk.Spinbox(self, values=(10, 20, 50, 100), width=10, command=self.setgridstep)
+        self.gridstep.grid(row=3, column=2, sticky="ew", columnspan=2)
+        self.gridsupport.GRIDSIZE = self.gridstep.get()
+
+        self.gridsteplb = tk.Label(self, text="Grid step")
+        self.gridsteplb.grid(row=3, column=4, sticky="ew")
 
         self.infoarea = tk.Text(self, height=5)
         self.infoarea.grid(row=0, column=6, rowspan=3)
@@ -568,7 +593,7 @@ class App(tk.Tk):
                 if answer:
                     self.maze.rooms = np.delete(self.maze.rooms, self.maze.croom.roompos)
                     self.maze.croom = self.maze.rooms[0]
-                    self.maze.draw(self.pygscreen)
+                    self.draw()
                     self.updateinfoarea(0)
 
     def showroom(self, off):
@@ -577,7 +602,7 @@ class App(tk.Tk):
             idx = self.maze.croom.roompos + off
             if 0 <= idx < len(self.maze.rooms):
                 self.maze.croom = self.maze.rooms[idx]
-                self.maze.draw(self.pygscreen)
+                self.draw()
                 self.updateinfoarea(idx)
 
     def updateinfoarea(self, nroom=None):
@@ -599,22 +624,27 @@ class App(tk.Tk):
         """Open a BlockAction, slblock is the block affected"""
         dlg = BlockActions(self, slblock)
 
-    def griddraw(self):
+    def setgridstep(self):
+        self.gridsupport.GRIDSIZE = int(self.gridstep.get())
+        self.gridsupport.makegrid()
+        self.draw()
+
+    def draw(self):
+        """Draw the screen, both grid (if needed) and blocks"""
+        if self.maze is not None:
+            self.pygscreen.fill(self.maze.BGCOL)
         if self.gridflag.get():
             #pretending that offset is always zero when drawing
             for x in self.gridsupport.xcs(0):
                 pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (x, 0)), src.PosManager.postopix(0, 0, (x, src.PosManager.SIZE_X)))
             for y in self.gridsupport.ycs(0):
                 pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (0, y)), src.PosManager.postopix(0, 0, (src.PosManager.SIZE_Y, y)))
-        else:
-            #this will redraw the blocks without the grid
-            newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_REFRESH)
-            pygame.event.post(newev)
-        
+        if self.maze is not None:
+            self.maze.draw(self.pygscreen)
+
     def pygameloop(self):
         """The editor main loop for the pygame part"""
         dbclock = pygame.time.Clock()
-        blockmovres = True
         while True:
             for event in pygame.event.get():
                 if event.type == pyloc.QUIT:
@@ -635,9 +665,19 @@ class App(tk.Tk):
                         event.todelete.kill()
                     elif event.action == ACT_MOVECURSOR:
                         self.maze.cursor.cridx = self.maze.croom.roompos
+                    elif event.action == ACT_STICKGRID:
+                        self.gridsupport.resetblock(self.maze.cpp, event.block, event.which)
                     else:
                         print(event.action)
-                    self.maze.draw(self.pygscreen)
+                    self.draw()
+                elif event.type == pyloc.KEYDOWN:
+                    if event.key == pyloc.K_LCTRL and self.grabbed is not None and self.gridflag.get():
+                        stickev = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=0, block=self.grabbed)
+                        pygame.event.post(stickev)
+                elif event.type == pyloc.KEYUP:
+                    if event.key == pyloc.K_LCTRL and self.grabbed is not None and self.gridflag.get():
+                        stickev = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=1, block=self.grabbed)
+                        pygame.event.post(stickev)
                 elif event.type == pyloc.MOUSEBUTTONDOWN and self.maze is not None:
                     self.grabbed = self.grabblock(event.pos)
                     if self.grabbed is not None and event.button == 3:
@@ -652,11 +692,10 @@ class App(tk.Tk):
                                 chooser = NewBlockDialog(self, event.pos, self.maze.cpp)
                 elif event.type == pyloc.MOUSEBUTTONUP and self.maze is not None:
                     if self.grabbed is not None and self.gridflag.get():
-                        if blockmovres:
-                            self.gridsupport.resetaurect(self.maze.cpp, self.grabbed.aurect)
-                        elif self.grabbed.resizable:
-                            self.gridsupport.resizeaurect(self.maze.cpp, self.grabbed.aurect)
-                    self.maze.draw(self.pygscreen)
+                        wh = 1 if pygame.key.get_pressed()[pyloc.K_LCTRL] else 0
+                        stickev = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=wh, block=self.grabbed)
+                        pygame.event.post(stickev)
+                    self.draw()
                     self.grabbed = None
                     for scb in self.maze.scrollareas.sprites():
                         if scb.rect.collidepoint(event.pos):
@@ -664,11 +703,7 @@ class App(tk.Tk):
                             break
                 elif event.type == pyloc.MOUSEMOTION and self.maze is not None:
                     if event.buttons == (1, 0, 0) and self.grabbed is not None:
-                        print("a", self.grabbed.aurect)
-                        print("*", self.grabbed.rect)
-                        pressed = pygame.key.get_pressed()
-                        if pressed[pyloc.K_LCTRL] and self.grabbed.resizable:
-                            blockmovres = False
+                        if pygame.key.get_pressed()[pyloc.K_LCTRL] and self.grabbed.resizable:
                             nw = self.grabbed.rsize[0] + event.rel[0]
                             nh = self.grabbed.rsize[1] + event.rel[1]
                             self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
@@ -676,7 +711,6 @@ class App(tk.Tk):
                             self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
                             self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
                         else:
-                            blockmovres = True
                             self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
                             self.grabbed.aurect.x += event.rel[0]
                             self.grabbed.aurect.y += event.rel[1]
