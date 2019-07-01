@@ -120,10 +120,11 @@ class DrawMaze(Maze):
 
     @croom.setter
     def croom(self, val):
+        #cannot use super here, we want to override the parent behaviour
         self._croom = val
 
     def draw(self, screen):
-        """Draw the screen"""
+        """Draw the blocks on the screen"""
         self.croom.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen)
         for bot in self.croom.bots.sprites():
@@ -433,15 +434,17 @@ class GridSupport(src.PosManager):
     it stay sticked to the closer grid lines.
     """
 
-    GRIDSIZE = 100 #in arbitrary units
+    GRIDSIZE = 10 #in arbitrary units
     GRIDCOL = (0, 100, 200)
     
     def __init__(self):
-        """Initialization:
-        """
+        """Initialization."""
+        #no need to store an offset
+        self.makegrid()
+
+    def makegrid(self):
         self._xcs = np.arange(0, self.SIZE_X+1, self.GRIDSIZE)
         self._ycs = np.arange(0, self.SIZE_Y+1, self.GRIDSIZE)
-        #no need to store the offset.
         
     def xcs(self, xoff):
         """Return x coordinates of the grid. xoff is the screen offset on x coordinate"""
@@ -518,7 +521,14 @@ class App(tk.Tk):
 
         self.gridflag = tk.IntVar()
         self.gridopt = tk.Checkbutton(self, text="Stick to the grid.", variable=self.gridflag, command=self.draw)
-        self.gridopt.grid(row=3, column=1, sticky="ew", columnspan=4)
+        self.gridopt.grid(row=3, column=1, sticky="ew")
+
+        self.gridstep = tk.Spinbox(self, values=(10, 20, 50, 100), width=10, command=self.setgridstep)
+        self.gridstep.grid(row=3, column=2, sticky="ew", columnspan=2)
+        self.gridsupport.GRIDSIZE = self.gridstep.get()
+
+        self.gridsteplb = tk.Label(self, text="Grid step")
+        self.gridsteplb.grid(row=3, column=4, sticky="ew")
 
         self.infoarea = tk.Text(self, height=5)
         self.infoarea.grid(row=0, column=6, rowspan=3)
@@ -614,16 +624,24 @@ class App(tk.Tk):
         """Open a BlockAction, slblock is the block affected"""
         dlg = BlockActions(self, slblock)
 
+    def setgridstep(self):
+        self.gridsupport.GRIDSIZE = int(self.gridstep.get())
+        self.gridsupport.makegrid()
+        self.draw()
+
     def draw(self):
-        self.pygscreen.fill(self.maze.BGCOL)
+        """Draw the screen, both grid (if needed) and blocks"""
+        if self.maze is not None:
+            self.pygscreen.fill(self.maze.BGCOL)
         if self.gridflag.get():
             #pretending that offset is always zero when drawing
             for x in self.gridsupport.xcs(0):
                 pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (x, 0)), src.PosManager.postopix(0, 0, (x, src.PosManager.SIZE_X)))
             for y in self.gridsupport.ycs(0):
                 pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (0, y)), src.PosManager.postopix(0, 0, (src.PosManager.SIZE_Y, y)))
-        self.maze.draw(self.pygscreen)
-            
+        if self.maze is not None:
+            self.maze.draw(self.pygscreen)
+
     def pygameloop(self):
         """The editor main loop for the pygame part"""
         dbclock = pygame.time.Clock()
