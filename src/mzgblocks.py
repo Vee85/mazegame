@@ -537,8 +537,8 @@ class EnemyBot(blockfactory(Block)):
 class WindArea(blockfactory(Block)):
     """A surface with an additional force field.
 
-    Children of Block. Can be visible or invisible.
-    Force field can be activated or disactivated by a button, and can be permanent or timed.
+    Children of Block. Can be visible or invisible, the force of the wind
+    may have different intensities.
     """
 
     label = 'F'
@@ -614,8 +614,27 @@ class WindArea(blockfactory(Block)):
         return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
 
 
+class Checkpoint(blockfactory(Block)):
+    """A fixed size area which allows to save the game.
+
+    Children of block.
+    """
+
+    resizable = False
+    rectsize = [30, 30]
+    label = 'C'
+    BGCOL = (170, 170, 170)
+
+    def __init__(self, bid, pos):
+        super(Checkpoint, self).__init__(bid, pos, self.rectsize, self.BGCOL)
+        
+    def reprline(self):
+        """Override method of base class, removing unneeded informations"""
+        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y}"
+
+
 class Character(blockfactory(Block)):
-    """A fixed size block, The cursor controlled by the player.
+    """A fixed size block, the cursor controlled by the player.
 
     Children of Block. It's movement is controlled by the player through keyboard.
     Is affected by gravity, can move left, right and jump at fixed speed. Can climb ladders.

@@ -67,6 +67,7 @@ class Room:
         self.doors = sprite.Group()
         self.keys = sprite.Group()
         self.windareas = sprite.Group()
+        self.checkpoints = sprite.Group()
         self.screens = np.array([1, 1])
 
     def addelem(self, lstpar):
@@ -101,7 +102,11 @@ class Room:
             coordinates = list(map(int, lstpar[4:]))
             bsize = EnemyBot.rectsize
             crblock = EnemyBot(blid, bpos, coordinates)
-            self.bots.add(crblock)      
+            self.bots.add(crblock)
+        elif lstpar[0] == 'C':
+            bsize = Checkpoint.rectsize
+            crblock = Checkpoint(blid, bpos)
+            self.checkpoints.add(crblock)
         else:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
 
@@ -142,8 +147,8 @@ class Room:
             raise RuntimeError
 
     def hoveringsprites(self):
-        """Return a list with all the block sprites which can be crossed trought by the player"""
-        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windareas.sprites()
+        """Return a list with all the block sprites which can be crossed throught by the player"""
+        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windareas.sprites() + self.checkpoints.sprites()
 
     def alldoorsid(self):
         """Return a list with all the door id"""
@@ -352,10 +357,16 @@ class Maze:
                 screen.fill(self.BGCOL, bot.rect)
 
             #redrawing blocks where player or bots have passed
-            for ldd in self.croom.hoveringsprites():
+            for hob in self.croom.hoveringsprites():
                 for mvspr in self.croom.bots.sprites() + [self.cursor]:
-                    if ldd.aurect.colliderect(mvspr.aurect):
-                        screen.blit(ldd.image, ldd.rect)
+                    if hob.aurect.colliderect(mvspr.aurect):
+                        screen.blit(hob.image, hob.rect)
+
+            #checking if the character is entering a checkpoint
+            for chp in self.croom.checkpoints:
+                if chp.aurect.contains(self.cursor.aurect):
+                    #@@@ here action to save the game
+                    break
 
             #checking if the character is entering in a door
             if kup:
