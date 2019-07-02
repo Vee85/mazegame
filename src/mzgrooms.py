@@ -116,6 +116,7 @@ class Room:
             self.screens[0] = maxx
         if maxy > self.screens[1]:
             self.screens[1] = maxy
+        return crblock
 
     def offscreen(self, refblock):
         """Return the offset of the screen of a reference block 'refblock'.

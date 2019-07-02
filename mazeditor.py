@@ -464,10 +464,14 @@ class GridSupport(src.PosManager):
         rx = block.aurect.right if issize else block.aurect.x
         ry = block.aurect.bottom if issize else block.aurect.y
         xshift = rx - self.xcs(off[0])
-        xcp = np.absolute(xshift).argmin()
         yshift = ry - self.ycs(off[1])
+        xcp = np.absolute(xshift).argmin()
         ycp = np.absolute(yshift).argmin()
         if issize:
+            if block.aurect.width - xshift[xcp] == 0:
+                xcp += 1
+            if block.aurect.height - yshift[ycp] == 0:
+                ycp += 1
             block.rsize = [block.aurect.width - xshift[xcp], block.aurect.height - yshift[ycp]]
         else:
             block.aurect.x -= xshift[xcp]
@@ -633,6 +637,8 @@ class App(tk.Tk):
         """Draw the screen, both grid (if needed) and blocks"""
         if self.maze is not None:
             self.pygscreen.fill(self.maze.BGCOL)
+        else:
+            self.pygscreen.fill((0, 0, 0)) #black
         if self.gridflag.get():
             #pretending that offset is always zero when drawing
             for x in self.gridsupport.xcs(0):
@@ -660,7 +666,12 @@ class App(tk.Tk):
                     elif event.action == ACT_ADDBLOCK:
                         for bln in event.line.split('\n'):
                             lline = re.split('\s+', bln.strip())
-                            self.maze.croom.addelem(lline)
+                            newblock = self.maze.croom.addelem(lline)
+                            if self.gridflag.get():
+                                stickevpos = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=0, block=newblock)
+                                pygame.event.post(stickevpos)
+                                stickevsiz = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=1, block=newblock)
+                                pygame.event.post(stickevsiz)
                     elif event.action == ACT_DELETEBLOCK:
                         event.todelete.kill()
                     elif event.action == ACT_MOVECURSOR:
