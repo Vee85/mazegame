@@ -481,6 +481,7 @@ class EnemyBot(blockfactory(Block)):
         return self.pathmarkers.sprites()[:-1]
 
     def addmarker(self, x, y):
+        """Add a marker to pathmakers group, used by editor."""
         last = self.pathmarkers.sprites()[-1]
         self.pathmarkers.remove(last)
         self.pathmarkers.add(Marker(last._id, [x, y], self.rectsize, self._id, False))
@@ -615,7 +616,7 @@ class WindArea(blockfactory(Block)):
 
 
 class Checkpoint(blockfactory(Block)):
-    """A fixed size area which allows to save the game.
+    """A fixed size area which allows to save the game on entering.
 
     Children of block.
     """
@@ -631,6 +632,11 @@ class Checkpoint(blockfactory(Block)):
     def reprline(self):
         """Override method of base class, removing unneeded informations"""
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y}"
+
+    def checkp_event(self):
+        """Post a checkpevent into the pygame.event queue"""
+        newev = pygame.event.Event(src.CHECKPEVENT, key_id=self._id)
+        pygame.event.post(newev)
 
 
 class Character(blockfactory(Block)):

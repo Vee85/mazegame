@@ -318,6 +318,10 @@ class Maze:
                         blitnow.append(dooropening)
         return blitnow
 
+    def savepoint(self, savepoint_id):
+        """Write on the disc a save file; savepoint_id is the id of the Checkpoint block."""
+        print(savepoint_id)
+
     def mazeloop(self, screen):
         """The game main loop. screen is the pygame.display"""
         enterroom = True
@@ -337,6 +341,8 @@ class Maze:
                     drawdoors = self.keytaken(event.key_id, event.openeddoor)
                     for drd in drawdoors:
                         screen.blit(drd.image, drd.rect)
+                elif event.type == src.CHECKPEVENT:
+                    self.savepoint(event.key_id)
                 elif event.type == src.ENTERINGEVENT:
                     self.cursor.setforcefield(self.gravity + event.wind)
                 elif event.type == src.EXITINGEVENT:
@@ -363,10 +369,11 @@ class Maze:
                         screen.blit(hob.image, hob.rect)
 
             #checking if the character is entering a checkpoint
-            for chp in self.croom.checkpoints:
-                if chp.aurect.contains(self.cursor.aurect):
-                    #@@@ here action to save the game
-                    break
+            if kup:
+                for chp in self.croom.checkpoints:
+                    if chp.aurect.contains(self.cursor.aurect):
+                        chp.checkp_event()
+                        break
 
             #checking if the character is entering in a door
             if kup:
