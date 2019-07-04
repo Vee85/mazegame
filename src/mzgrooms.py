@@ -43,6 +43,8 @@ import pygame
 
 from src.mzgblocks import *
 
+SAVE_DIR = os.path.join(src.MAIN_DIR, '../saves')
+
 
 class Room:
     """the block container. Represent a room of the maze.
@@ -191,7 +193,7 @@ class Maze:
     BGCOL = (0, 0, 0)
     gravity = np.array([0.0, 200.0])
 
-    def __init__(self, fn, isgame=True):
+    def __init__(self, fn, loadfile=None, isgame=True):
         """Initialization:
         
         fn -- filename of the map to be load and used.
@@ -200,6 +202,7 @@ class Maze:
         """
         self.isgame = isgame
         self.filename = fn
+        self.chpfilename = os.path.join(SAVE_DIR, "checkpoint")
         self.rooms = None
         self.cursor = None
         self._croom = None
@@ -207,6 +210,20 @@ class Maze:
         self.firstroom = None
         self.initcounters()
         self.maploader()
+
+        #loading game (starting not from beginning if a proper loadfile is given or checkpoint
+        if loadfile is None:
+            #new game
+            try:
+                os.remove(self.chpfilename)
+            except FileNotFoundError:
+                pass
+        elif loadfile == -1:
+            #using checkpoint
+            self.loadchp()
+        else:
+            #using save file
+            pass
 
     @property
     def croom(self):
@@ -321,6 +338,18 @@ class Maze:
     def savepoint(self, savepoint_id):
         """Write on the disc a save file; savepoint_id is the id of the Checkpoint block."""
         print(savepoint_id)
+        with open(self.chpfilename, 'w') as chpf:
+            chpf.write(f"{self.croom.roompos}\n{savepoint_id}\n")
+
+    def loadchp(self):
+        """Load game to checkpoint (character position and item taken)"""
+        if os.path.isfile(self.chpfilename): #@@@to be implemented
+            with open(self.chpfilename) as chpf:
+                for chpb in self.croom.doors:
+                    if nrldd.destination == doorid:
+                        self.cursor.aurect.x = nrldd.aurect.x
+                        self.cursor.aurect.y = nrldd.aurect.y
+                        break
 
     def mazeloop(self, screen):
         """The game main loop. screen is the pygame.display"""

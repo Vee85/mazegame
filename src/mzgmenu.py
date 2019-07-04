@@ -226,6 +226,7 @@ class TopLev:
     """
     
     BGCOL = (0, 0, 0)
+    MENUPAGES = {'main':'main', 'ng':'newgame', 'go':'gameover'}
     
     def __init__(self, screen):
         """Initialization:
@@ -233,13 +234,14 @@ class TopLev:
         screen -- the pygame.display surface
         """
         self.fn = None
+        self.lfile = None
         self.mlstop = False
         self.screen = screen
 
         self.title = PgLabel("MAZEGAME", (300, 0), 100)        
 
         self.newbutt = PgButton("New Game", (100, 150), 50)
-        self.newbutt.connect(src.ONCLICKEVENT, self.menunewgame)
+        self.newbutt.connect(src.ONCLICKEVENT, lambda : self.show_menupage('ng'))
         self.newbutt.connect(src.ENTERINGEVENT, lambda : self.newbutt.switchbgcol(PgButton.HOVERCOL))
         self.newbutt.connect(src.EXITINGEVENT, lambda : self.newbutt.switchbgcol(PgButton.BGCOL))
 
@@ -256,26 +258,37 @@ class TopLev:
         self.ngtitle = PgLabel("Select the maze", (350, 0), 60)
 
         self.backtomm = PgButton("Main Menu", (0, 950), 50)
-        self.backtomm.connect(src.ONCLICKEVENT, self.mainpage)
+        self.backtomm.connect(src.ONCLICKEVENT, lambda : self.show_menupage('main'))
         self.backtomm.connect(src.ENTERINGEVENT, lambda : self.backtomm.switchbgcol(PgButton.HOVERCOL))
         self.backtomm.connect(src.EXITINGEVENT, lambda : self.backtomm.switchbgcol(PgButton.BGCOL))
-        
-    def selectgame(self, filename):
-        """Set the map filename"""
-        self.fn = os.path.join(GAME_DIR, filename)
-        self.mlstop = True
 
-    def mainpage(self):
-        """"Show the main menu page"""
+        self.golab = PgLabel("GAME OVER!", (400, 400), 60)
+        self.gosublab = PgLabel("Do you want to continue?", (350, 500), 40)
+
+        self.yesbutt = PgButton("YES", (350, 600), 40)
+        self.yesbutt.connect(src.ONCLICKEVENT, self.continuegame)
+        self.yesbutt.connect(src.ENTERINGEVENT, lambda : self.yesbutt.switchbgcol(PgButton.HOVERCOL))
+        self.yesbutt.connect(src.EXITINGEVENT, lambda : self.yesbutt.switchbgcol(PgButton.BGCOL))
+
+        self.nobutt = PgButton("NO", (650, 600), 40)
+        self.nobutt.connect(src.ONCLICKEVENT, lambda : self.show_menupage('main'))
+        self.nobutt.connect(src.ENTERINGEVENT, lambda : self.nobutt.switchbgcol(PgButton.HOVERCOL))
+        self.nobutt.connect(src.EXITINGEVENT, lambda : self.nobutt.switchbgcol(PgButton.BGCOL))
+
+    def show_menupage(self, page):
+        """Call the proper function to show a page of the menu"""
         PgWidget.hideall(self.screen, self.BGCOL)
+        getattr(self, 'menupage_' + self.MENUPAGES[page])()
+
+    def menupage_main(self):
+        """"Show the main menu page"""
         self.title.show(self.screen)
         self.newbutt.show(self.screen)
         self.loadbutt.show(self.screen)
         self.quitbutt.show(self.screen)
 
-    def menunewgame(self):
+    def menupage_newgame(self):
         """Show the menu page to choose a map"""
-        PgWidget.hideall(self.screen, self.BGCOL)
         self.ngtitle.show(self.screen)
         self.backtomm.show(self.screen)
 
@@ -290,9 +303,27 @@ class TopLev:
             gamebutt.connect(src.EXITINGEVENT, lambda bgc=PgButton.BGCOL, wgg=gamebutt : wgg.switchbgcol(bgc))
             gamebutt.show(self.screen)
 
-    def menuloop(self):
+    def menupage_gameover(self):
+        """Show the game over page"""
+        print("Gameover page!")
+        self.golab.show(self.screen)
+        self.gosublab.show(self.screen)
+        self.yesbutt.show(self.screen)
+        self.nobutt.show(self.screen)
+        self.quitbutt.show(self.screen)
+
+    def selectgame(self, filename):
+        """Set the map filename"""
+        self.fn = os.path.join(GAME_DIR, filename)
+        self.mlstop = True
+
+    def continuegame(self):
+        self.lfile = -1
+        self.mlstop = True
+
+    def menuloop(self, showpage='main'):
         """The main loop for the menu and the game"""
-        self.mainpage()
+        self.show_menupage(showpage)
 
         while True:
             self.mlstop = False
@@ -331,8 +362,10 @@ class TopLev:
                 break
 
     def gameloop(self):
+        mpage = 'main'
         while True:
-            self.menuloop()
+            self.menuloop(mpage)
             if self.fn is not None:
-                game = Maze(self.fn)
+                game = Maze(self.fn, self.lfile)
                 game.mazeloop(self.screen)
+                mpage = 'go'
