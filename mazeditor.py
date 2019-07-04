@@ -472,7 +472,7 @@ class GridSupport(src.PosManager):
                 xcp += 1
             if block.aurect.height - yshift[ycp] == 0:
                 ycp += 1
-            block.rsize = [float(block.aurect.width - xshift[xcp]), float(block.aurect.height - yshift[ycp])]
+            block.rsize = [block.aurect.width - xshift[xcp], block.aurect.height - yshift[ycp]]
         else:
             block.aurect.x -= xshift[xcp]
             block.aurect.y -= yshift[ycp]

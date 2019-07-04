@@ -103,7 +103,7 @@ class PosManager:
         else:
             xx = pp[0]
             yy = pp[1]
-        return xx, yy
+        return float(xx), float(yy)
 
     @staticmethod
     def postopix(xoff, yoff, *pp):
