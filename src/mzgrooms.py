@@ -231,9 +231,21 @@ class Maze:
 
     @croom.setter
     def croom(self, val):
-        self._croom = val
+        """property setter for the current room, val could be a room instance or an integer (the room id)"""
+        if isinstance(val, Room):
+            self._croom = val
+        elif isinstance(val, int):
+            for room in self.rooms:
+                if room.roompos == val:
+                    self._croom = room
+                    break
+            else:
+                raise RuntimeError("Error while setting a room! Given integer does not correspond to a valid id room in the maze!")
+        else:
+            raise RuntimeError("Error while setting a room! Invalid value.")
+
         if self.cursor is not None:
-            self.cursor.cridx = val.roompos
+            self.cursor.cridx = self._croom.roompos
 
     def initcounters(self):
         """Reset the id generators of the block types which have an id"""
@@ -335,21 +347,25 @@ class Maze:
                         blitnow.append(dooropening)
         return blitnow
 
-    def savepoint(self, savepoint_id):
-        """Write on the disc a save file; savepoint_id is the id of the Checkpoint block."""
-        print(savepoint_id)
+    def savepoint(self, checkpoint_id):
+        """Write on the disc a save file; checkpoint_id is the id of the Checkpoint block."""
+        print("checkpoint!") #@@@ to be substituded with a message in game
         with open(self.chpfilename, 'w') as chpf:
-            chpf.write(f"{self.croom.roompos}\n{savepoint_id}\n")
+            chpf.write(f"{self.croom.roompos}\n{checkpoint_id}\n")
 
     def loadchp(self):
         """Load game to checkpoint (character position and item taken)"""
-        if os.path.isfile(self.chpfilename): #@@@to be implemented
+        if os.path.isfile(self.chpfilename):
             with open(self.chpfilename) as chpf:
-                for chpb in self.croom.doors:
-                    if nrldd.destination == doorid:
-                        self.cursor.aurect.x = nrldd.aurect.x
-                        self.cursor.aurect.y = nrldd.aurect.y
-                        break
+                idroom = int(next(chpf).strip())
+                idcp = int(next(chpf).strip())
+
+            self.croom = idroom
+            for chpbl in self.croom.checkpoints:
+                if chpbl._id == idcp:
+                    self.cursor.aurect.x = chpbl.aurect.x
+                    self.cursor.aurect.y = chpbl.aurect.y
+                    break
 
     def mazeloop(self, screen):
         """The game main loop. screen is the pygame.display"""

@@ -305,7 +305,6 @@ class TopLev:
 
     def menupage_gameover(self):
         """Show the game over page"""
-        print("Gameover page!")
         self.golab.show(self.screen)
         self.gosublab.show(self.screen)
         self.yesbutt.show(self.screen)
