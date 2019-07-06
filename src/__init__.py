@@ -45,12 +45,13 @@ FPS = 30
 TPF = 1 / FPS
 
 #custom pygame events
-ENTERDOOREVENT = pyloc.USEREVENT
-TAKEKEYEVENT = pyloc.USEREVENT + 1
-DEATHEVENT = pyloc.USEREVENT + 2
-ONCLICKEVENT = pyloc.USEREVENT + 3
-ENTERINGEVENT = pyloc.USEREVENT + 4
-EXITINGEVENT = pyloc.USEREVENT + 5
+DEATHEVENT = pyloc.USEREVENT
+ENTERDOOREVENT = pyloc.USEREVENT +1
+TAKEKEYEVENT = pyloc.USEREVENT + 2
+CHECKPEVENT = pyloc.USEREVENT + 3
+ONCLICKEVENT = pyloc.USEREVENT + 4
+ENTERINGEVENT = pyloc.USEREVENT + 5
+EXITINGEVENT = pyloc.USEREVENT + 6
 
 
 def checksign(x):
@@ -102,7 +103,7 @@ class PosManager:
         else:
             xx = pp[0]
             yy = pp[1]
-        return xx, yy
+        return float(xx), float(yy)
 
     @staticmethod
     def postopix(xoff, yoff, *pp):
@@ -118,8 +119,8 @@ class PosManager:
     def pixtopos(xoff, yoff, *pp):
         """Converts pixels to absolute position in arbitrary units."""
         xx, yy = PosManager._argspar(pp)
-        uxx = int(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        uyy = int(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
         return [uxx + (xoff*1000), uyy + (yoff*1000)]
     
     @staticmethod
@@ -129,8 +130,8 @@ class PosManager:
         Size is an (x, y) pair denoting x and y sizes of a rect
         """
         xx, yy = PosManager._argspar(pp)
-        px = int(round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)))
-        py = int(round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)))
+        px = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        py = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
         return [px, py]
 
     @staticmethod

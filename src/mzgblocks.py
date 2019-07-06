@@ -481,6 +481,7 @@ class EnemyBot(blockfactory(Block)):
         return self.pathmarkers.sprites()[:-1]
 
     def addmarker(self, x, y):
+        """Add a marker to pathmakers group, used by editor."""
         last = self.pathmarkers.sprites()[-1]
         self.pathmarkers.remove(last)
         self.pathmarkers.add(Marker(last._id, [x, y], self.rectsize, self._id, False))
@@ -537,8 +538,8 @@ class EnemyBot(blockfactory(Block)):
 class WindArea(blockfactory(Block)):
     """A surface with an additional force field.
 
-    Children of Block. Can be visible or invisible.
-    Force field can be activated or disactivated by a button, and can be permanent or timed.
+    Children of Block. Can be visible or invisible, the force of the wind
+    may have different intensities.
     """
 
     label = 'F'
@@ -614,8 +615,33 @@ class WindArea(blockfactory(Block)):
         return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
 
 
+class Checkpoint(blockfactory(Block)):
+    """A fixed size area which allows to save the game on entering.
+
+    Children of block.
+    """
+
+    resizable = False
+    rectsize = [50, 50]
+    label = 'C'
+    RAWIMCP = pygame.image.load(os.path.join(IMAGE_DIR, "checkpoint.png"))
+    IMCP = pygame.transform.scale(RAWIMCP, src.PosManager.sizetopix(rectsize))
+    
+    def __init__(self, bid, pos):
+        super(Checkpoint, self).__init__(bid, pos, self.rectsize, self.IMCP)
+        
+    def reprline(self):
+        """Override method of base class, removing unneeded informations"""
+        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y}"
+
+    def checkp_event(self):
+        """Post a checkpevent into the pygame.event queue"""
+        newev = pygame.event.Event(src.CHECKPEVENT, key_id=self._id)
+        pygame.event.post(newev)
+
+
 class Character(blockfactory(Block)):
-    """A fixed size block, The cursor controlled by the player.
+    """A fixed size block, the cursor controlled by the player.
 
     Children of Block. It's movement is controlled by the player through keyboard.
     Is affected by gravity, can move left, right and jump at fixed speed. Can climb ladders.

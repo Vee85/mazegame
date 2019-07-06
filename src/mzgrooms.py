@@ -43,6 +43,8 @@ import pygame
 
 from src.mzgblocks import *
 
+SAVE_DIR = os.path.join(src.MAIN_DIR, '../saves')
+
 
 class Room:
     """the block container. Represent a room of the maze.
@@ -67,6 +69,7 @@ class Room:
         self.doors = sprite.Group()
         self.keys = sprite.Group()
         self.windareas = sprite.Group()
+        self.checkpoints = sprite.Group()
         self.screens = np.array([1, 1])
 
     def addelem(self, lstpar):
@@ -101,7 +104,11 @@ class Room:
             coordinates = list(map(int, lstpar[4:]))
             bsize = EnemyBot.rectsize
             crblock = EnemyBot(blid, bpos, coordinates)
-            self.bots.add(crblock)      
+            self.bots.add(crblock)
+        elif lstpar[0] == 'C':
+            bsize = Checkpoint.rectsize
+            crblock = Checkpoint(blid, bpos)
+            self.checkpoints.add(crblock)
         else:
             raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
 
@@ -142,8 +149,8 @@ class Room:
             raise RuntimeError
 
     def hoveringsprites(self):
-        """Return a list with all the block sprites which can be crossed trought by the player"""
-        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windareas.sprites()
+        """Return a list with all the block sprites which can be crossed throught by the player"""
+        return self.ladders.sprites() + self.doors.sprites() + self.keys.sprites() + self.windareas.sprites() + self.checkpoints.sprites()
 
     def alldoorsid(self):
         """Return a list with all the door id"""
@@ -186,7 +193,7 @@ class Maze:
     BGCOL = (0, 0, 0)
     gravity = np.array([0.0, 200.0])
 
-    def __init__(self, fn, isgame=True):
+    def __init__(self, fn, loadfile=None, isgame=True):
         """Initialization:
         
         fn -- filename of the map to be load and used.
@@ -195,6 +202,7 @@ class Maze:
         """
         self.isgame = isgame
         self.filename = fn
+        self.chpfilename = os.path.join(SAVE_DIR, "checkpoint")
         self.rooms = None
         self.cursor = None
         self._croom = None
@@ -203,15 +211,41 @@ class Maze:
         self.initcounters()
         self.maploader()
 
+        #loading game (starting not from beginning if a proper loadfile is given or checkpoint
+        if loadfile is None:
+            #new game
+            try:
+                os.remove(self.chpfilename)
+            except FileNotFoundError:
+                pass
+        elif loadfile == -1:
+            #using checkpoint
+            self.loadchp()
+        else:
+            #using save file
+            pass
+
     @property
     def croom(self):
         return self._croom
 
     @croom.setter
     def croom(self, val):
-        self._croom = val
+        """property setter for the current room, val could be a room instance or an integer (the room id)"""
+        if isinstance(val, Room):
+            self._croom = val
+        elif isinstance(val, int):
+            for room in self.rooms:
+                if room.roompos == val:
+                    self._croom = room
+                    break
+            else:
+                raise RuntimeError("Error while setting a room! Given integer does not correspond to a valid id room in the maze!")
+        else:
+            raise RuntimeError("Error while setting a room! Invalid value.")
+
         if self.cursor is not None:
-            self.cursor.cridx = val.roompos
+            self.cursor.cridx = self._croom.roompos
 
     def initcounters(self):
         """Reset the id generators of the block types which have an id"""
@@ -313,6 +347,26 @@ class Maze:
                         blitnow.append(dooropening)
         return blitnow
 
+    def savepoint(self, checkpoint_id):
+        """Write on the disc a save file; checkpoint_id is the id of the Checkpoint block."""
+        print("checkpoint!") #@@@ to be substituded with a message in game
+        with open(self.chpfilename, 'w') as chpf:
+            chpf.write(f"{self.croom.roompos}\n{checkpoint_id}\n")
+
+    def loadchp(self):
+        """Load game to checkpoint (character position and item taken)"""
+        if os.path.isfile(self.chpfilename):
+            with open(self.chpfilename) as chpf:
+                idroom = int(next(chpf).strip())
+                idcp = int(next(chpf).strip())
+
+            self.croom = idroom
+            for chpbl in self.croom.checkpoints:
+                if chpbl._id == idcp:
+                    self.cursor.aurect.x = chpbl.aurect.x
+                    self.cursor.aurect.y = chpbl.aurect.y
+                    break
+
     def mazeloop(self, screen):
         """The game main loop. screen is the pygame.display"""
         enterroom = True
@@ -332,6 +386,8 @@ class Maze:
                     drawdoors = self.keytaken(event.key_id, event.openeddoor)
                     for drd in drawdoors:
                         screen.blit(drd.image, drd.rect)
+                elif event.type == src.CHECKPEVENT:
+                    self.savepoint(event.key_id)
                 elif event.type == src.ENTERINGEVENT:
                     self.cursor.setforcefield(self.gravity + event.wind)
                 elif event.type == src.EXITINGEVENT:
@@ -352,10 +408,17 @@ class Maze:
                 screen.fill(self.BGCOL, bot.rect)
 
             #redrawing blocks where player or bots have passed
-            for ldd in self.croom.hoveringsprites():
+            for hob in self.croom.hoveringsprites():
                 for mvspr in self.croom.bots.sprites() + [self.cursor]:
-                    if ldd.aurect.colliderect(mvspr.aurect):
-                        screen.blit(ldd.image, ldd.rect)
+                    if hob.aurect.colliderect(mvspr.aurect):
+                        screen.blit(hob.image, hob.rect)
+
+            #checking if the character is entering a checkpoint
+            if kup:
+                for chp in self.croom.checkpoints:
+                    if chp.aurect.contains(self.cursor.aurect):
+                        chp.checkp_event()
+                        break
 
             #checking if the character is entering in a door
             if kup:
