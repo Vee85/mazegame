@@ -43,6 +43,10 @@ Key -- A key to open the locked doors.
 
 EnemyBot -- A small moving block which should not be touched.
 
+WindArea -- A block in which an external force acting on the character is present.
+
+Checkpoint -- A checkpoint to save game.
+
 Character -- The cursor controlled by the player.
 """
 
