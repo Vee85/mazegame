@@ -114,6 +114,7 @@ class Room:
 
         self.allblocks.add(crblock)
         if self.isgame:
+            print("NOPE")
             next(crblock._idcounter)
         
         #adjusting screens if needed
