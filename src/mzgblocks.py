@@ -64,140 +64,130 @@ IMAGE_DIR = os.path.join(src.MAIN_DIR, '../images')
 ISGAME = True
 
 
+def add_counter(cls):
+    """Decorator to add a counter to each class"""
+    cls._idcounter = count(0)
+    return cls
+
+
 class Block(sprite.Sprite, src.PosManager):
-    '''Base class for all sprite block types. Used as base class by the class factory.
+    '''Common interface for all sprite block types.
 
-     Children of pygame.sprite.Sprite and src.PosManager.
-     '''
-    
+    The methods are:
+    fillimage -- fill the image with the bg color or mosaic tile
+    update -- update pygame.Rect with the current position / size
+    reprline -- return text line of the block in map file format (used to create a map by the editor)
+    reprlinenew -- classmethod, used by editor to write lines of new blocks to be saved in the map file
+    collidinggroup -- return other sprites of a group colliding with this sprite
+    It has also the following property:
+    risze -- get or set the size of the block, if resizable
+    '''
+
+    resizable = True
     actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
-    
-    def __init__(self):
-        '''Initalitazion'''
+
+    def __init__(self, bid, pos, rsize, bg=None):
+        """Initialization:
+
+        bid -- sprite id
+        pos -- two-length list with x, y coordinates of top-left corner of the rectangle
+        rsize -- two-length list with width and height of the rectangle
+        bg -- background color (3-length RGB tuple) or a pygame.Surface representing a tile
+        """
         super(Block, self).__init__()
+        self._id = bid
+        self.image = pygame.Surface(self.sizetopix(rsize))
+        self.aurect = src.FlRect(pos[0], pos[1], rsize[0], rsize[1])
+        self.bg = bg
+        Block.fillimage(self) #to avoid calling overriden versions
+
+        #place block to its coordinates
+        self.update(0, 0)
+
+    def fillimage(self):
+        """Fill the image with the bg color or mosaic tile.
+
+        Return nothing, raise a RuntimeError if an invalid instance has been
+        stored as the 'bg' argument.
+        """
+        if self.bg is None:
+            pass
+        elif isinstance(self.bg, (tuple, list)):
+            self.image.fill(self.bg)
+        elif isinstance(self.bg, pygame.Surface):
+            subim = self.bg.convert()
+            for i in range(0, self.rsize[0], subim.get_rect().width):
+                for j in range(0, self.rsize[1], subim.get_rect().height):
+                    self.image.blit(subim, (i, j))
+        else:
+            raise RuntimeError("Wrong initialization parameter.")
+
+    #prepare drawing, shift blocks to be in the screen
+    def update(self, xoff, yoff):
+        """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
+        self.rect = self.recttopix(xoff, yoff, self.aurect.getRect())
+
+    @property
+    def rsize(self):
+        return [self.aurect.width, self.aurect.height]
+
+    @rsize.setter
+    def rsize(self, newsize):
+        if self.resizable:
+            nwpxsize = self.sizetopix(newsize) #@@@this should not be resolution dependent. How to?
+            if any([i <= 2 for i in nwpxsize]):
+                return
+            self.aurect.width = newsize[0]
+            self.aurect.height = newsize[1]
+            self.image = pygame.transform.scale(self.image, nwpxsize)
+            self.fillimage()
+
+    def reprline(self):
+        """Return text line of the block in map file format (used by the editor)
+
+        This is a basic format holding a label and the PyRect values x, y, width, height.
+        Is fine for basic blocks, more complex blocks need to override it with custom representation lines.
+        """
+        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
+
+    @classmethod
+    def reprlinenew(cls, idepos, *args):
+        """Return default text line for a new block in map file format (used by the editor)
+
+        Classmethod. idepos is a 3-length list containing the id and x y coordinates
+        *args are positional arguments, to be added to the list, and vary from block type to block type.
+        Defaults *args is empty.
+        Block types in need of a custom line override this method and may require a different
+        set of positional arguments.
+        """
+        if cls.__name__ == "Block":
+            raise RuntimeError("reprlinenew classmethod should not be called by a Block instance!")
+
+        lab = f"{cls.label} " + " ".join(map(str, idepos))
+        addpar = " ".join(map(str, args))
+        if hasattr(cls, "rectsize"):
+            return lab + " " + addpar
+        else:
+            return lab + " 100 50 " + addpar
+
+    def collidinggroup(self, group):
+        """Return other sprites of a group colliding with this sprite"""
+        return [sp for sp in group.sprites() if self.aurect.colliderect(sp.aurect)]
+
+    @classmethod
+    def initcounter(cls):
+        """Classmethod to reset the id generator"""
+        cls._idcounter = count(0)
+
+    def blitinfo(self, *args):
+        text = '.'.join(map(str, args))
+        mfont = pygame.font.Font(None, 30)
+        surftext = mfont.render(text, True, (255, 0, 0))
+        self.image.blit(surftext, (0, 0))
 
 
-def blockfactory(cls):
-    '''class factory for all the blocks'''
-    class Fblock(cls):
-        '''Common interface for all sprite block types.
-
-        Children of Block. The methods are:
-        fillimage -- fill the image with the bg color or mosaic tile
-        update -- update pygame.Rect with the current position / size
-        reprline -- return text line of the block in map file format (used to create a map by the editor)
-        reprlinenew -- classmethod, used by editor to write lines of new blocks to be saved in the map file
-        collidinggroup -- return other sprites of a group colliding with this sprite
-        It has also the following property:
-        risze -- get or set the size of the block, if resizable
-        '''
-
-        _idcounter = count(0)
-        resizable = True
-        
-        def __init__(self, bid, pos, rsize, bg=None):
-            """Initialization:
-
-            bid -- sprite id
-            pos -- two-length list with x, y coordinates of top-left corner of the rectangle
-            rsize -- two-length list with width and height of the rectangle
-            bg -- background color (3-length RGB tuple) or a pygame.Surface representing a tile
-            """
-            super(Fblock, self).__init__()
-            self._id = bid
-            self.image = pygame.Surface(self.sizetopix(rsize))
-            self.aurect = src.FlRect(pos[0], pos[1], rsize[0], rsize[1])
-            self.bg = bg
-            Fblock.fillimage(self) #to avoid calling overriden versions
-
-            #place block to its coordinates
-            self.update(0, 0)
-
-        def fillimage(self):
-            """Fill the image with the bg color or mosaic tile.
-
-            Return nothing, raise a RuntimeError if an invalid instance has been
-            stored as the 'bg' argument.
-            """
-            if self.bg is None:
-                pass
-            elif isinstance(self.bg, (tuple, list)):
-                self.image.fill(self.bg)
-            elif isinstance(self.bg, pygame.Surface):
-                subim = self.bg.convert()
-                for i in range(0, self.rsize[0], subim.get_rect().width):
-                    for j in range(0, self.rsize[1], subim.get_rect().height):
-                        self.image.blit(subim, (i, j))
-            else:
-                raise RuntimeError("Wrong initialization parameter.")
-
-        #prepare drawing, shift blocks to be in the screen
-        def update(self, xoff, yoff):
-            """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
-            self.rect = self.recttopix(xoff, yoff, self.aurect.getRect())
-
-        @property
-        def rsize(self):
-            return [self.aurect.width, self.aurect.height]
-
-        @rsize.setter
-        def rsize(self, newsize):
-            if self.resizable:
-                nwpxsize = self.sizetopix(newsize) #@@@this should not be resolution dependent. How to?
-                if any([i <= 2 for i in nwpxsize]):
-                    return
-                self.aurect.width = newsize[0]
-                self.aurect.height = newsize[1]
-                self.image = pygame.transform.scale(self.image, nwpxsize)
-                self.fillimage()
-
-        def reprline(self):
-            """Return text line of the block in map file format (used by the editor)
-
-            This is a basic format holding a label and the PyRect values x, y, width, height.
-            Is fine for basic blocks, more complex blocks need to override it with custom representation lines.
-            """
-            return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
-
-        @classmethod
-        def reprlinenew(cls, idepos, *args):
-            """Return default text line for a new block in map file format (used by the editor)
-
-            Classmethod. idepos is a 3-length list containing the id and x y coordinates
-            *args are positional arguments, to be added to the list, and vary from block type to block type.
-            Defaults *args is empty.
-            Block types in need of a custom line override this method and may require a different
-            set of positional arguments.
-            """
-            if cls.__name__ == "Fblock":
-                raise RuntimeError("reprlinenew classmethod should not be called by a Fblock instance!")
-
-            lab = f"{cls.label} " + " ".join(map(str, idepos))
-            addpar = " ".join(map(str, args))
-            if hasattr(cls, "rectsize"):
-                return lab + " " + addpar
-            else:
-                return lab + " 100 50 " + addpar
-
-        def collidinggroup(self, group):
-            """Return other sprites of a group colliding with this sprite"""
-            return [sp for sp in group.sprites() if self.aurect.colliderect(sp.aurect)]
-
-        @classmethod
-        def initcounter(cls):
-            """Classmethod to reset the id generator"""
-            cls._idcounter = count(0)
-
-        def blitinfo(self, *args):
-            text = '.'.join(map(str, args))
-            mfont = pygame.font.Font(None, 30)
-            surftext = mfont.render(text, True, (255, 0, 0))
-            self.image.blit(surftext, (0, 0))
-
-    return Fblock
-
-
-class Marker(blockfactory(Block)):
+@add_counter
+class Marker(Block):
     """An invisible, any size but not resizable block, used to mark a position on the screen.
 
     Children of Block. Markers have an id incremented by 1 each time a new Marker
@@ -240,7 +230,8 @@ class Marker(blockfactory(Block)):
         pass
         
 
-class Wall(blockfactory(Block)):
+@add_counter
+class Wall(Block):
     """A solid wall of any size, can be used as floor, roof, or vertical wall.
 
     Children of Block.
@@ -259,7 +250,8 @@ class Wall(blockfactory(Block)):
         super(Wall, self).__init__(bid, pos, rsize, self.BGCOL)
 
 
-class Ladder(blockfactory(Block)):
+@add_counter
+class Ladder(Block):
     """A ladder can be of any size. Can be crossed and climbed to reach high platforms.
 
     Children of Block.
@@ -278,7 +270,8 @@ class Ladder(blockfactory(Block)):
         super(Ladder, self).__init__(bid, pos, rsize, self.BGIMAGE)
 
 
-class Deadlyblock(blockfactory(Block)):
+@add_counter
+class Deadlyblock(Block):
     """A block (any size) which should not be touched. Is game over.
 
     Children of Block. Create a death event if the player collides with it.
@@ -302,7 +295,8 @@ class Deadlyblock(blockfactory(Block)):
         pygame.event.post(newev)
 
 
-class Door(blockfactory(Block)):
+@add_counter
+class Door(Block):
     """A fixed size block, it represents one extremity of a passage.
 
     Children of Block. A Door has a numeric id, and holds the numeric id of
@@ -377,7 +371,8 @@ class Door(blockfactory(Block)):
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
         
 
-class Key(blockfactory(Block)):
+@add_counter
+class Key(Block):
     """A fixed size block, it represents a key to open a specific door.
 
     Children of Block. A Key has a numeric id and holds the numeric id of one or more Doors.
@@ -438,7 +433,8 @@ class Key(blockfactory(Block)):
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
 
 
-class EnemyBot(blockfactory(Block)):
+@add_counter
+class EnemyBot(Block):
     """A fixed size block, it represents a enemy moving on a prefixed path. 
 
     Children of Block. A EnemyBot has a numeric id and moves at fixed speed in the room.
@@ -539,7 +535,8 @@ class EnemyBot(blockfactory(Block)):
             self.setspeed()
 
 
-class WindArea(blockfactory(Block)):
+@add_counter
+class WindArea(Block):
     """A surface with an additional force field.
 
     Children of Block. Can be visible or invisible, the force of the wind
@@ -619,7 +616,8 @@ class WindArea(blockfactory(Block)):
         return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
 
 
-class Checkpoint(blockfactory(Block)):
+@add_counter
+class Checkpoint(Block):
     """A fixed size area which allows to save the game on entering.
 
     Children of block.
@@ -644,7 +642,7 @@ class Checkpoint(blockfactory(Block)):
         pygame.event.post(newev)
 
 
-class Character(blockfactory(Block)):
+class Character(Block):
     """A fixed size block, the cursor controlled by the player.
 
     Children of Block. It's movement is controlled by the player through keyboard.

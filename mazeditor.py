@@ -49,7 +49,7 @@ from tkinter import messagebox
 import src
 from src.mzgrooms import Maze
 from src.mzgblocks import Block
-from src.mzgblocks import blockfactory
+from src.mzgblocks import add_counter
 
 GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 src.mzgblocks.ISGAME = False
@@ -65,7 +65,8 @@ ACT_MOVECURSOR = 4 #no keyword
 ACT_STICKGRID = 5 #need keywords block, which
 
 
-class ScrollBlock(blockfactory(Block)):
+@add_counter
+class ScrollBlock(Block):
     """An invisible block, used to define a clickable area to move the camera.
 
     Children of Block. Can be of any size but not resizable. Used to emit
@@ -106,7 +107,7 @@ class DrawMaze(Maze):
         
         fn -- filename of the map to be load and used.
         """
-        super(DrawMaze, self).__init__(fn, False)
+        super(DrawMaze, self).__init__(fn, None, False)
         self.cpp = np.array([0, 0])
         self.scrollareas = pygame.sprite.Group()
         self.scrollareas.add(ScrollBlock([0, -20], [1000, 20], [0, -1]))
@@ -343,7 +344,6 @@ class NewBlockDialog(tk.Toplevel):
                           [[nids[2]] + [self.blockpos[0]+100, self.blockpos[1]], nids[0:2]]]
                 for btp, prm in zip(bltp, params):
                     newline = getattr(src.mzgblocks, btp).reprlinenew(prm[0], *prm[1])
-                    print(newline)
                     newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
                     pygame.event.post(newev)
 
