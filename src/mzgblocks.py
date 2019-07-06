@@ -622,12 +622,13 @@ class Checkpoint(blockfactory(Block)):
     """
 
     resizable = False
-    rectsize = [30, 30]
+    rectsize = [50, 50]
     label = 'C'
-    BGCOL = (170, 170, 170)
-
+    RAWIMCP = pygame.image.load(os.path.join(IMAGE_DIR, "checkpoint.png"))
+    IMCP = pygame.transform.scale(RAWIMCP, src.PosManager.sizetopix(rectsize))
+    
     def __init__(self, bid, pos):
-        super(Checkpoint, self).__init__(bid, pos, self.rectsize, self.BGCOL)
+        super(Checkpoint, self).__init__(bid, pos, self.rectsize, self.IMCP)
         
     def reprline(self):
         """Override method of base class, removing unneeded informations"""
