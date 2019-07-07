@@ -114,7 +114,6 @@ class Room:
 
         self.allblocks.add(crblock)
         if self.isgame:
-            print("NOPE")
             next(crblock._idcounter)
         
         #adjusting screens if needed
@@ -403,7 +402,8 @@ class Maze:
                 self.cursor.update(self.cpp[0], self.cpp[1])
                 enterroom = False
                 self.scrollscreen(screen)
-                
+
+            #deleting moving elements (to animate the movement)
             screen.fill(self.BGCOL, self.cursor.rect)
             for bot in self.croom.bots.sprites():
                 screen.fill(self.BGCOL, bot.rect)

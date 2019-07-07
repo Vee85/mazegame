@@ -36,16 +36,17 @@ import pygame.locals as pyloc
 import src
 
 
-class ScreenArea:
+class ScreenArea(src.PosManager):
     """Define an area of the screen.
-    
+
+    Child of PosManager.
     This class holds a FlRect object to define an area of the screen. Provide useful methods
     for coordinate transformations to ensure that blocks coordinates are referred to the ScreenArea
     and not the whole screen.
     Useful to define different rectangular sections of the screen (game area, info bars, and similar).
     """
 
-    def __init__(self, x, y, w, h):    
+    def __init__(self, x, y, w, h):
         """Initializator: unit is arbitrary, from 0 to 1000. Refers to the whole screen.
 
         x and y are coordinates of the top-left corner
@@ -57,55 +58,28 @@ class ScreenArea:
             raise ValueError("Error in defining ScreenArea position, y + h > 1000 is out of screen.")
         self.area = src.FlRect(x, y, w, h)
 
-    #@@@ fix below
-    @staticmethod
-    def screen_size():
-        """Returns screen resolution"""
-        return PosManager.SIZE_X, PosManager.SIZE_Y
+    def area_size(self):
+        """Returns width and height of screen area"""
+        return self.area.width, self.area.height
 
-    @staticmethod
-    def _argspar(pp):
-        """Parse the argument for other function, allowing variadics of two elements"""
-        if isinstance(pp[0], (tuple, list, np.ndarray)):
-            xx = pp[0][0]
-            yy = pp[0][1]
-        else:
-            xx = pp[0]
-            yy = pp[1]
-        return float(xx), float(yy)
-
-    @staticmethod
-    def postopix(xoff, yoff, *pp):
+    def postopix(self, xoff, yoff, *pp):
         """Converts an absolute position from arbitrary units to pixel units"""
-        xx, yy = PosManager._argspar(pp)
+        xx, yy = src.PosManager._argspar(pp)
         xx = xx - (xoff * 1000)
         yy = yy - (yoff * 1000)
-        px = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
-        py = round(((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)) + PosManager.MARGIN_Y)
-        return [px, py]
-
-    @staticmethod
-    def pixtopos(xoff, yoff, *pp):
-        """Converts pixels to absolute position in arbitrary units."""
-        xx, yy = PosManager._argspar(pp)
-        uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
-        return [uxx + (xoff*1000), uyy + (yoff*1000)]
+        ax = self.area.x + ((xx / 1000) * self.area.width)
+        ay = self.area.y + ((yy / 1000) * self.area.height)
+        return src.PosManager.postopix(0, 0, ax, ay)
     
-    @staticmethod
-    def sizetopix(*pp):
-        """Converts size from arbitrary units to pixel units
+    def sizetopix(self, *pp):
+        """Converts size from arbitrary units to pixel units"""
+        xx, yy = src.PosManager._argspar(pp)
+        ax = (xx / 1000) * self.area.width
+        ay = (yy / 1000) * self.area.height
+        return src.PosManager.sizetopix(ax, ay)
 
-        Size is an (x, y) pair denoting x and y sizes of a rect
-        """
-        xx, yy = PosManager._argspar(pp)
-        px = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        py = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
-        return [px, py]
-
-    @staticmethod
-    def recttopix(xoff, yoff, rr):
+    def recttopix(self, xoff, yoff, rr):
         """Converts a pygame.Rect or FlRect instance from arbitrary units to pixel units"""
-        pos = PosManager.postopix(xoff, yoff, rr.x, rr.y)
-        sz = PosManager.sizetopix(rr.width, rr.height)
-        return Rect(pos[0], pos[1], sz[0], sz[1])
+        pos = self.postopix(xoff, yoff, rr.x, rr.y)
+        sz = self.sizetopix(rr.width, rr.height)
+        return pygame.Rect(pos[0], pos[1], sz[0], sz[1])
