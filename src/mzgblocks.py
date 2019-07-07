@@ -97,13 +97,29 @@ class Block(sprite.Sprite, src.PosManager):
         """
         super(Block, self).__init__()
         self._id = bid
-        self.image = pygame.Surface(self.area.sizetopix(rsize))
+        self.image = pygame.Surface(self.sizetopix(rsize))
         self.aurect = src.FlRect(pos[0], pos[1], rsize[0], rsize[1])
         self.bg = bg
         Block.fillimage(self) #to avoid calling overriden versions
 
         #place block to its coordinates
         self.update(0, 0)
+
+    @classmethod
+    def recttopix(cls, xoff, yoff, rr):
+        #@@@
+        if ISGAME:
+            return cls.area.recttopix(xoff, yoff, rr)
+        else:
+            return super(Block, cls).recttopix(xoff, yoff, rr)
+
+    @classmethod
+    def sizetopix(cls, rr):
+        #@@@
+        if ISGAME:
+            return cls.area.sizetopix(rr)
+        else:
+            return super(Block, cls).sizetopix(rr)
 
     def fillimage(self):
         """Fill the image with the bg color or mosaic tile.
@@ -126,10 +142,7 @@ class Block(sprite.Sprite, src.PosManager):
     #prepare drawing, shift blocks to be in the screen
     def update(self, xoff, yoff):
         """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
-        if ISGAME:
-            self.rect = self.area.recttopix(xoff, yoff, self.aurect)
-        else:
-            self.rect = self.recttopix(xoff, yoff, self.aurect)
+        self.rect = self.recttopix(xoff, yoff, self.aurect)
 
     @property
     def rsize(self):
@@ -316,13 +329,13 @@ class Door(Block):
     rectsize = [50, 50]
     label = 'D'
     LDOOR = pygame.image.load(os.path.join(IMAGE_DIR, "lockeddoor.png"))
-    LOCKEDDOOR = pygame.transform.scale(LDOOR, Block.area.sizetopix(rectsize))
+    LOCKEDDOOR = pygame.transform.scale(LDOOR, Block.sizetopix(rectsize))
     ODOOR = pygame.image.load(os.path.join(IMAGE_DIR, "opendoor.png"))
-    OPENDOOR = pygame.transform.scale(ODOOR, Block.area.sizetopix(rectsize))
+    OPENDOOR = pygame.transform.scale(ODOOR, Block.sizetopix(rectsize))
     LEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "lockedexit.png"))
-    LOCKEDEXIT = pygame.transform.scale(LEXIT, Block.area.sizetopix(rectsize))
+    LOCKEDEXIT = pygame.transform.scale(LEXIT, Block.sizetopix(rectsize))
     OEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "openexit.png"))
-    OPENEXIT = pygame.transform.scale(OEXIT, Block.area.sizetopix(rectsize))
+    OPENEXIT = pygame.transform.scale(OEXIT, Block.sizetopix(rectsize))
 
     def __init__(self, bid, pos, doorid, lock):
         """Initialization:
@@ -532,7 +545,7 @@ class EnemyBot(Block):
         if moddist >= (self.speed * src.TPF):
             self.aurect.x += self.curspeed[0] * src.TPF
             self.aurect.y += self.curspeed[1] * src.TPF
-            self.rect = self.area.recttopix(self.off[0], self.off[1], self.aurect)
+            self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)
         else:
             self.aurect.x = self.pathmarkers.sprites()[self._ipm].aurect.x
             self.aurect.y = self.pathmarkers.sprites()[self._ipm].aurect.y
@@ -826,4 +839,4 @@ class Character(Block):
             self.dvy = 0
 
         self.current_direction.clear()
-        self.rect = self.area.recttopix(self.off[0], self.off[1], self.aurect)
+        self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)

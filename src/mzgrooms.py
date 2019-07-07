@@ -173,9 +173,13 @@ class Room:
         """Update all sprite blocks"""
         self.allblocks.update(xoff, yoff)
 
-    def draw(self, sface):
+    def draw(self, sface, off):
         """Draw all sprite blocks"""
-        self.allblocks.draw(sface)
+        coff = off * 1000
+        cnt = src.FlRect(coff[0]-20, coff[1]-20, coff[0]+1020, coff[1]+1020)
+        for bb in self.allblocks:
+            if cnt.contains(bb.aurect):
+                sface.blit(bb.image, bb.rect)
 
     def empty(self):
         """Kill all sprite blocks"""
@@ -310,7 +314,7 @@ class Maze:
         screen.fill(self.BGCOL)
         self.croom.update(self.cpp[0], self.cpp[1])
         self.cursor.update(self.cpp[0], self.cpp[1])
-        self.croom.draw(screen)
+        self.croom.draw(screen, self.cpp)
 
     def crossdoor(self, doorid, destination):
         """Enter in a door: player position is reset to the destination door.
