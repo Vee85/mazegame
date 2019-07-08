@@ -249,9 +249,14 @@ class FlRect:
         """String representation of the class"""
         return f"<FlRect({self._x}, {self._y}, {self._w}, {self._h})>"
 
-    def getRect(self):
-        """Return a pygame.Rect object with rounded coordinates"""
-        return Rect(round(self._x), round(self._y), round(self._w), round(self._h))
+    def get_rect(self, off=np.array([0, 0])):
+        """Return a pygame.Rect object with rounded coordinates
+
+        off is the screen offset (a 2-length array), to place the rect in the screen.
+        default, no offset.
+        """
+        coff = off * 1000
+        return Rect(round(self._x) - coff[0], round(self._y) - coff[1], round(self._w), round(self._h))
 
     def move(self, *off):
         """Equivalent to the 'move' method of pygame.Rect"""
@@ -274,6 +279,17 @@ class FlRect:
         boolx = (self.right >= other.right) and (self.left <= other.left)
         booly = (self.bottom >= other.bottom) and (self.top <= other.top)
         return boolx and booly
+
+    def clip(self, other):
+        """Equivalent to the 'clip' method of pygame.Rect. In case of no intersection, returns None"""
+        if self.colliderect(other):
+            cx = max(self.x, other.x)
+            cy = max(self.y, other.y)
+            cw = min(self.right, other.right) - cx
+            ch = min(self.bottom, other.bottom) - cy
+            return FlRect(cx, cy, cw, ch)
+        else:
+            return None
 
     def distance(self, other):
         """Calculate distance from another FlRect, using the center as reference.

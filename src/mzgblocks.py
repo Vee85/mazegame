@@ -107,7 +107,7 @@ class Block(sprite.Sprite, src.PosManager):
 
     @classmethod
     def recttopix(cls, xoff, yoff, rr):
-        #@@@
+        """Classmethod to use the correct recttopix method"""
         if ISGAME:
             return cls.area.recttopix(xoff, yoff, rr)
         else:
@@ -115,7 +115,7 @@ class Block(sprite.Sprite, src.PosManager):
 
     @classmethod
     def sizetopix(cls, rr):
-        #@@@
+        """Classmethod to use the correct sizetopix method"""
         if ISGAME:
             return cls.area.sizetopix(rr)
         else:
@@ -709,25 +709,27 @@ class Character(Block):
 
     def update(self, xoff, yoff):
         """Override method of base class to store also current offset"""
-        self.off = [xoff, yoff]
+        self.off = np.array([xoff, yoff])
         super(Character, self).update(xoff, yoff)
             
-    def insidesurf(self, sface): #@@@ to be edited: character should be in the ScreenArea, not in the screen.
-        """Check if the block is inside the surface 'sface'.
+    def insidearea(self):
+        """Check if the character is inside the shown area of the room.
 
-        Used to check if character is in the screen: if not, return the
-        corresponding offset in order to draw the next part of the room.
+        Returns None if is inside, otherwise returns the corresponding
+        offset in order to draw the next part of the room.
         """
-        if sface.get_rect().contains(self.rect):
+        coff = self.off * 1000
+        cnt = src.FlRect(coff[0], coff[1], coff[0]+1000, coff[1]+1000)
+        if cnt.contains(self.aurect):
             return None
         else:
-            if self.rect.top < sface.get_rect().top:
+            if self.aurect.centery < cnt.top:
                 return np.array([0, -1])
-            elif self.rect.left < sface.get_rect().left:
+            elif self.aurect.centerx < cnt.left:
                 return np.array([-1, 0])
-            elif self.rect.bottom > sface.get_rect().bottom:
+            elif self.aurect.centery > cnt.bottom:
                 return np.array([0, 1])
-            elif self.rect.right > sface.get_rect().right:
+            elif self.aurect.centerx > cnt.right:
                 return np.array([1, 0])
       
     def getdirmove(self):

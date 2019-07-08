@@ -177,9 +177,15 @@ class Room:
         """Draw all sprite blocks"""
         coff = off * 1000
         cnt = src.FlRect(coff[0]-20, coff[1]-20, coff[0]+1020, coff[1]+1020)
+        print("type(bb), bb.aurect, clipped, bb.rect, bb.image.get_rect(), surfsect")
         for bb in self.allblocks:
-            if cnt.contains(bb.aurect):
-                sface.blit(bb.image, bb.rect)
+            if cnt.colliderect(bb.aurect):
+                clipped = bb.aurect.clip(cnt)
+                clipsize = bb.area.sizetopix(clipped.width, clipped.height)
+                clippos = bb.area.sizetopix(clipped.x - bb.aurect.x, clipped.y - bb.aurect.y)
+                surfsect = pygame.Rect(clippos[0], clippos[1], clipsize[0], clipsize[1])
+                print(type(bb), bb.aurect, clipped, bb.rect, bb.image.get_rect(), surfsect)
+                sface.blit(bb.image, bb.rect, area=surfsect)
 
     def empty(self):
         """Kill all sprite blocks"""
@@ -471,7 +477,7 @@ class Maze:
                 screen.blit(bot.image, bot.rect)
 
             pygame.display.update()
-            addcoord = self.cursor.insidesurf(screen)
+            addcoord = self.cursor.insidearea()
             clock.tick(src.FPS)
             if addcoord is not None:
                 self.cpp += addcoord
