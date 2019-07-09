@@ -67,7 +67,7 @@ class ScreenArea(src.PosManager):
     def origin_area(self, off):
         """Returns the FlRect of the original area mapping the ScreenArea"""
         coff = off * 1000
-        return src.FlRect(coff[0]-self._xmargin, coff[1]-self._ymargin, coff[0]+1000+self._xmargin, coff[1]+1000+self._ymargin)
+        return src.FlRect(coff[0]-self._xmargin, coff[1]-self._ymargin, 1000+(2*self._xmargin), 1000+(2*self._ymargin))
 
     def postopix(self, xoff, yoff, *pp):
         """Converts an absolute position from arbitrary units to pixel units"""

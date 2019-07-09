@@ -179,7 +179,9 @@ class Room:
         Block.area.area.fill((0, 0, 0))
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
+                print(bb.label, bb.aurect, bb.rect)
                 Block.area.area.blit(bb.image, bb.rect)
+        print("***********")
         sface.blit(Block.area.area, Block.area.pos)
 
     def empty(self):
