@@ -176,20 +176,14 @@ class Room:
     def draw(self, sface, off):
         """Draw all sprite blocks"""
         cnt = Block.area.origin_area(off)
-        print("type(bb), bb.aurect, clipped, bb.rect, bb.image.get_rect(), surfsect")
+        pygame.draw.rect(sface, (100, 100, 100), src.PosManager.recttopix(0, 0, Block.area.area))
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
                 clipped = bb.aurect.clip(cnt)
                 clipsize = bb.area.sizetopix(clipped.width, clipped.height)
                 clippos = bb.area.sizetopix(clipped.x - bb.aurect.x, clipped.y - bb.aurect.y)
                 surfsect = pygame.Rect(clippos[0], clippos[1], clipsize[0], clipsize[1])
-                correct = bb.rect.copy()
-                if surfsect.x != 0:
-                    correct.x = surfsect.x
-                if surfsect.y != 0:
-                    correct.y = surfsect.y
-                print(type(bb), bb.aurect, clipped, correct, bb.image.get_rect(), surfsect)
-                sface.blit(bb.image, correct, area=surfsect)
+                sface.blit(bb.image, (bb.rect.x + surfsect.x, bb.rect.y + surfsect.y), area=surfsect)
 
     def empty(self):
         """Kill all sprite blocks"""
