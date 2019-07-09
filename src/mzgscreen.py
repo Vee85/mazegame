@@ -46,36 +46,41 @@ class ScreenArea(src.PosManager):
     Useful to define different rectangular sections of the screen (game area, info bars, and similar).
     """
 
-    def __init__(self, x, y, w, h):
+    def __init__(self, x, y, w, h, xm, ym):
         """Initializator: unit is arbitrary, from 0 to 1000. Refers to the whole screen.
 
-        x and y are coordinates of the top-left corner
-        w, h are width and height of the rectangle
+        - x and y are coordinates of the top-left corner
+        - w, h are width and height of the rectangle
+        - xm and ym are x and y margings, added to the 1000 unit base. They allow to show
+        the closest parts of the next offset 
         """
         if x + w > 1000:
             raise ValueError("Error in defining ScreenArea position, x + w > 1000 is out of screen.")
         if y + h > 1000:
             raise ValueError("Error in defining ScreenArea position, y + h > 1000 is out of screen.")
         self.area = src.FlRect(x, y, w, h)
+        self._xmargin = xm
+        self._ymargin = ym
 
-    def area_size(self):
-        """Returns width and height of screen area"""
-        return self.area.width, self.area.height
+    def origin_area(self, off):
+        """Returns the FlRect of the original area mapping the ScreenArea"""
+        coff = off * 1000
+        return src.FlRect(coff[0]-self._xmargin, coff[1]-self._ymargin, coff[0]+1000+self._xmargin, coff[1]+1000+self._ymargin)
 
     def postopix(self, xoff, yoff, *pp):
         """Converts an absolute position from arbitrary units to pixel units"""
         xx, yy = src.PosManager._argspar(pp)
         xx = xx - (xoff * 1000)
         yy = yy - (yoff * 1000)
-        ax = self.area.x + ((xx / 1000) * self.area.width)
-        ay = self.area.y + ((yy / 1000) * self.area.height)
+        ax = self.area.x + ((xx / 1000) * (self.area.width -2*self._xmargin) + self._xmargin)
+        ay = self.area.y + ((yy / 1000) * (self.area.height - 2*self._ymargin) + self._ymargin)
         return src.PosManager.postopix(0, 0, ax, ay)
     
     def sizetopix(self, *pp):
         """Converts size from arbitrary units to pixel units"""
         xx, yy = src.PosManager._argspar(pp)
-        ax = (xx / 1000) * self.area.width
-        ay = (yy / 1000) * self.area.height
+        ax = (xx / 1000) * (self.area.width -2*self._xmargin)  
+        ay = (yy / 1000) * (self.area.height -2*self._ymargin)
         return src.PosManager.sizetopix(ax, ay)
 
     def recttopix(self, xoff, yoff, rr):

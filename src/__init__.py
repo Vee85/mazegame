@@ -86,8 +86,8 @@ class PosManager:
     #unit is pixel
     SIZE_X = 1000
     SIZE_Y = 1000
-    MARGIN_X = 20
-    MARGIN_Y = 20
+    MARGIN_X = 0
+    MARGIN_Y = 0
 
     @staticmethod
     def screen_size():

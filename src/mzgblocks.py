@@ -85,7 +85,7 @@ class Block(sprite.Sprite, src.PosManager):
 
     resizable = True
     actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
-    area = ScreenArea(0, 0, 800, 800)
+    area = ScreenArea(0, 0, 800, 800, 20, 20)
 
     def __init__(self, bid, pos, rsize, bg=None):
         """Initialization:
