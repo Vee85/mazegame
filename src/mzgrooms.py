@@ -176,12 +176,10 @@ class Room:
     def draw(self, sface, off):
         """Draw all sprite blocks"""
         cnt = Block.area.origin_area(off)
-        Block.area.area.fill((0, 0, 0))
+        Block.area.area.fill((100, 100, 100))
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
-                print(bb.label, bb.aurect, bb.rect)
                 Block.area.area.blit(bb.image, bb.rect)
-        print("***********")
         sface.blit(Block.area.area, Block.area.pos)
 
     def empty(self):
