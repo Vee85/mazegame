@@ -36,10 +36,10 @@ import pygame.locals as pyloc
 import src
 
 
-class ScreenArea(src.PosManager):
+class ScreenArea(sprite.Sprite, src.PosManager):
     """Define an area of the screen.
 
-    Child of PosManager.
+    Child of Sprite and PosManager.
     This class holds a FlRect object to define an area of the screen. Provide useful methods
     for coordinate transformations to ensure that blocks coordinates are referred to the ScreenArea
     and not the whole screen.
@@ -54,13 +54,13 @@ class ScreenArea(src.PosManager):
         - xm and ym are x and y margings, added to the 1000 unit base. They allow to show
         the closest parts of the next offset 
         """
+        super(ScreenArea, self).__init__()
         if x + w > 1000:
             raise ValueError("Error in defining ScreenArea position, x + w > 1000 is out of screen.")
         if y + h > 1000:
             raise ValueError("Error in defining ScreenArea position, y + h > 1000 is out of screen.")
-        self.pos = (x, y)
-        self.size = (w, h)
-        self.area = pygame.Surface((w, h))
+        self.aurect = src.FlRect(x, y, w, h)
+        self.image = pygame.Surface((w, h))
         self._xmargin = xm
         self._ymargin = ym
 
@@ -74,15 +74,15 @@ class ScreenArea(src.PosManager):
         xx, yy = src.PosManager._argspar(pp)
         xx = xx - (xoff * 1000)
         yy = yy - (yoff * 1000)
-        ax = (xx / 1000) * (self.size[0] -2*self._xmargin) + self._xmargin
-        ay = (yy / 1000) * (self.size[1] - 2*self._ymargin) + self._ymargin
+        ax = (xx / 1000) * (self.aurect.width -2*self._xmargin) + self._xmargin
+        ay = (yy / 1000) * (self.aurect.height - 2*self._ymargin) + self._ymargin
         return src.PosManager.postopix(0, 0, ax, ay)
     
     def sizetopix(self, *pp):
         """Converts size from arbitrary units to pixel units"""
         xx, yy = src.PosManager._argspar(pp)
-        ax = (xx / 1000) * (self.size[0] -2*self._xmargin)  
-        ay = (yy / 1000) * (self.size[1] -2*self._ymargin)
+        ax = (xx / 1000) * (self.aurect.width -2*self._xmargin)
+        ay = (yy / 1000) * (self.aurect.height -2*self._ymargin)
         return src.PosManager.sizetopix(ax, ay)
 
     def recttopix(self, xoff, yoff, rr):

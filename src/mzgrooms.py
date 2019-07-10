@@ -176,11 +176,11 @@ class Room:
     def draw(self, sface, off):
         """Draw all sprite blocks"""
         cnt = Block.area.origin_area(off)
-        Block.area.area.fill((100, 100, 100))
+        Block.area.image.fill((0, 0, 0))
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
-                Block.area.area.blit(bb.image, bb.rect)
-        sface.blit(Block.area.area, Block.area.pos)
+                Block.area.image.blit(bb.image, bb.rect)
+        sface.blit(Block.area.image, (Block.area.aurect.x, Block.area.aurect.y))
 
     def empty(self):
         """Kill all sprite blocks"""
@@ -312,7 +312,7 @@ class Maze:
             newev = pygame.event.Event(src.DEATHEVENT)
             pygame.event.post(newev)
             return
-        screen.fill(self.BGCOL)
+        screen.fill(self.BGCOL) #@@@ this line may be removed later since we use a surface for the game
         self.croom.update(self.cpp[0], self.cpp[1])
         self.cursor.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen, self.cpp)
@@ -406,6 +406,7 @@ class Maze:
                 self.cpp = self.croom.offscreen(self.cursor)
                 self.cursor.update(self.cpp[0], self.cpp[1])
                 enterroom = False
+                cnt = Block.area.origin_area(self.cpp)
                 self.scrollscreen(screen)
 
             #deleting moving elements (to animate the movement)
@@ -417,7 +418,10 @@ class Maze:
             for hob in self.croom.hoveringsprites():
                 for mvspr in self.croom.bots.sprites() + [self.cursor]:
                     if hob.aurect.colliderect(mvspr.aurect):
-                        screen.blit(hob.image, hob.rect)
+                        innerarea = mvspr.rect.copy()
+                        innerarea.x -= hob.rect.x
+                        innerarea.y -= hob.rect.y
+                        screen.blit(hob.image, mvspr.rect, area=innerarea)
 
             #checking if the character is entering a checkpoint
             if kup:
@@ -442,6 +446,7 @@ class Maze:
                     if lkk.aurect.contains(self.cursor.aurect) and not lkk.taken:
                         lkk.takingkey_event()
                         lkk.taken = True
+                        screen.blit(lkk.image, lkk.rect)
                         break
 
             #adjusting force field if entering or leaving a windarea
@@ -465,11 +470,13 @@ class Maze:
             if dying:
                 continue
 
+            #handling movement drawing - bots moved but drawn only if inside ScreenArea.
             self.cursor.movecharacter(self.croom.walls, self.croom.ladders)
             screen.blit(self.cursor.image, self.cursor.rect)
             for bot in self.croom.bots.sprites():
                 bot.movebot()
-                screen.blit(bot.image, bot.rect)
+                if cnt.contains(bot.aurect):
+                    screen.blit(bot.image, bot.rect)
 
             pygame.display.update()
             addcoord = self.cursor.insidearea()
@@ -477,3 +484,6 @@ class Maze:
             if addcoord is not None:
                 self.cpp += addcoord
                 self.scrollscreen(screen)
+                cnt = Block.area.origin_area(self.cpp)
+
+
