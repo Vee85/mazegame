@@ -393,7 +393,7 @@ class Maze:
                 elif event.type == src.TAKEKEYEVENT:
                     drawdoors = self.keytaken(event.key_id, event.openeddoor)
                     for drd in drawdoors:
-                        screen.blit(drd.image, drd.rect)
+                        screen.blit(drd.image, self.croom.area.corrpix(drd.rect))
                 elif event.type == src.CHECKPEVENT:
                     self.savepoint(event.key_id)
                 elif event.type == src.ENTERINGEVENT:
@@ -413,9 +413,9 @@ class Maze:
                 self.scrollscreen(screen)
 
             #deleting moving elements (to animate the movement)
-            screen.fill(self.BGCOL, self.cursor.rect)
+            screen.fill(self.BGCOL, self.croom.area.corrpix(self.cursor.rect))
             for bot in self.croom.bots.sprites():
-                screen.fill(self.BGCOL, bot.rect)
+                screen.fill(self.BGCOL, self.croom.area.corrpix(bot.rect))
 
             #redrawing blocks where player or bots have passed
             for hob in self.croom.hoveringsprites():
@@ -424,7 +424,7 @@ class Maze:
                         innerarea = mvspr.rect.copy()
                         innerarea.x -= hob.rect.x
                         innerarea.y -= hob.rect.y
-                        screen.blit(hob.image, mvspr.rect, area=innerarea)
+                        screen.blit(hob.image, self.croom.area.corrpix(mvspr.rect), area=innerarea)
 
             #checking if the character is entering a checkpoint
             if kup:
@@ -449,7 +449,7 @@ class Maze:
                     if lkk.aurect.contains(self.cursor.aurect) and not lkk.taken:
                         lkk.takingkey_event()
                         lkk.taken = True
-                        screen.blit(lkk.image, lkk.rect)
+                        screen.blit(lkk.image, self.croom.area.corrpix(lkk.rect))
                         break
 
             #adjusting force field if entering or leaving a windarea
@@ -475,11 +475,11 @@ class Maze:
 
             #handling movement drawing - bots moved but drawn only if inside ScreenArea.
             self.cursor.movecharacter(self.croom.walls, self.croom.ladders)
-            screen.blit(self.cursor.image, self.cursor.rect)
+            screen.blit(self.cursor.image, self.croom.area.corrpix(self.cursor.rect))
             for bot in self.croom.bots.sprites():
                 bot.movebot()
                 if cnt.contains(bot.aurect):
-                    screen.blit(bot.image, bot.rect)
+                    screen.blit(bot.image, self.croom.area.corrpix(bot.rect))
 
             pygame.display.update()
             addcoord = self.cursor.insidearea()
@@ -488,5 +488,3 @@ class Maze:
                 self.cpp += addcoord
                 self.scrollscreen(screen)
                 cnt = self.croom.area.origin_area(self.cpp)
-
-

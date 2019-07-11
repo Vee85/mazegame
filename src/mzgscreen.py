@@ -91,6 +91,13 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         sz = self.sizetopix(rr.width, rr.height)
         return pygame.Rect(pos[0], pos[1], sz[0], sz[1])
 
+    def corrpix(self, pos):
+        """Return corrected pixel position"""
+        if isinstance(pos, (src.FlRect, pygame.Rect)):
+            return pos.move(self.aurect.x, self.aurect.y)
+        elif isinstance(pos, (list, tuple, np.ndarray)):
+            return (pos[0] + self.aurect.x, pos[1] + self.aurect.y)
+
 
 #area where the maze is shown
-mazearea = ScreenArea(0, 0, 800, 800, 20, 20)
+mazearea = ScreenArea(100, 100, 800, 800, 20, 20)
