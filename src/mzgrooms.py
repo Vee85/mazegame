@@ -42,7 +42,8 @@ import numpy as np
 import pygame
 
 from src.mzgblocks import *
-from src.mzgscreen import mazearea
+from src.mzgscreen import mazearea, editorarea
+from src import ISGAME
 
 SAVE_DIR = os.path.join(src.MAIN_DIR, '../saves')
 
@@ -53,7 +54,10 @@ class Room:
     Instances of this class (and their methods) should be managed by the Maze class.
     """
 
-    area = mazearea
+    if ISGAME:
+        area = mazearea
+    else:
+        area = editorarea
 
     def __init__(self, rp, isgame):
         """Initialization:

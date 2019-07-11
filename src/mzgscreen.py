@@ -91,6 +91,16 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         sz = self.sizetopix(rr.width, rr.height)
         return pygame.Rect(pos[0], pos[1], sz[0], sz[1])
 
+    def pixtopos(xoff, yoff, *pp):
+        """Converts pixel coordinate to absolute position in arbitrary units."""
+        # ~ xx, yy = src.PosManager._argspar(pp)
+        # ~ uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        # ~ uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        # ~ return [uxx + (xoff*1000), uyy + (yoff*1000)]
+        raise NotImplementedError("pixtopos")
 
-#area where the maze is shown
+#area where the maze is shown for gaming
 mazearea = ScreenArea(0, 0, 800, 800, 20, 20)
+
+#area where the maze is shown for editing
+editorarea = ScreenArea(0, 0, 1000, 1000, 20, 20)

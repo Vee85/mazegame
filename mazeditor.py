@@ -47,12 +47,14 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from tkinter import messagebox
 
 import src
+src.ISGAME = False
+
 from src.mzgrooms import Maze
 from src.mzgblocks import Block
 from src.mzgblocks import add_counter
+from src.mzgscreen import editorarea
 
 GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
-src.mzgblocks.ISGAME = False
 
 DOUBLECLICKTIME = 300
 
@@ -85,7 +87,7 @@ class ScrollBlock(Block):
         e.g. [0, 1] to move by one screen down
         """
         super(ScrollBlock, self).__init__(next(self._idcounter), pos, rsize)
-        self.image.fill((0, 0, 0))
+        self.image.fill((100, 200, 50))
         self.image.set_colorkey((0, 0, 0))
         self.direction = direction
 
@@ -127,7 +129,7 @@ class DrawMaze(Maze):
     def draw(self, screen):
         """Draw the blocks on the screen"""
         self.croom.update(self.cpp[0], self.cpp[1])
-        self.croom.draw(screen)
+        self.croom.draw(screen, self.cpp)
         for bot in self.croom.bots.sprites():
             for mrk in bot.getmarkers():
                 screen.blit(mrk.image, mrk.rect)
@@ -227,7 +229,7 @@ class EnemyBotinfo(Blockinfo):
 
     def getinfo(self):
         """Overriding method: return a list of the extra parameters"""
-        ux, uy = src.PosManager.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
+        ux, uy = editorarea.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
         ll = [(ux + (i*50), uy) for i in range(1, int(self.nummarker.get())+1)]
         return [el for sl in ll for el in sl]
 
@@ -326,7 +328,7 @@ class NewBlockDialog(tk.Toplevel):
             blocktype = self.blocktypes.get()
             if blocktype in self.allblocks:
                 nid = next(getattr(src.mzgblocks, blocktype)._idcounter)
-                idepos = [nid] + src.PosManager.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
+                idepos = [nid] + editorarea.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
                 addparam = []
                 if self.custompanel is not None:
                     extrapar = self.custompanel.getinfo()
@@ -642,9 +644,9 @@ class App(tk.Tk):
         if self.gridflag.get():
             #pretending that offset is always zero when drawing
             for x in self.gridsupport.xcs(0):
-                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (x, 0)), src.PosManager.postopix(0, 0, (x, src.PosManager.SIZE_X)))
+                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((x, 0)), src.PosManager.postopix(0, 0, (x, src.PosManager.SIZE_X)))
             for y in self.gridsupport.ycs(0):
-                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix(0, 0, (0, y)), src.PosManager.postopix(0, 0, (src.PosManager.SIZE_Y, y)))
+                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((0, y)), src.PosManager.postopix(0, 0, (src.PosManager.SIZE_Y, y)))
         if self.maze is not None:
             self.maze.draw(self.pygscreen)
 
