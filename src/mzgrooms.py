@@ -42,6 +42,7 @@ import numpy as np
 import pygame
 
 from src.mzgblocks import *
+from src.mzgscreen import mazearea
 
 SAVE_DIR = os.path.join(src.MAIN_DIR, '../saves')
 
@@ -51,6 +52,8 @@ class Room:
 
     Instances of this class (and their methods) should be managed by the Maze class.
     """
+
+    area = mazearea
 
     def __init__(self, rp, isgame):
         """Initialization:
@@ -175,12 +178,12 @@ class Room:
 
     def draw(self, sface, off):
         """Draw all sprite blocks"""
-        cnt = Block.area.origin_area(off)
-        Block.area.image.fill((0, 0, 0))
+        cnt = self.area.origin_area(off)
+        self.area.image.fill((0, 0, 0))
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
-                Block.area.image.blit(bb.image, bb.rect)
-        sface.blit(Block.area.image, (Block.area.aurect.x, Block.area.aurect.y))
+                self.area.image.blit(bb.image, bb.rect)
+        sface.blit(self.area.image, (self.area.aurect.x, self.area.aurect.y))
 
     def empty(self):
         """Kill all sprite blocks"""
@@ -406,7 +409,7 @@ class Maze:
                 self.cpp = self.croom.offscreen(self.cursor)
                 self.cursor.update(self.cpp[0], self.cpp[1])
                 enterroom = False
-                cnt = Block.area.origin_area(self.cpp)
+                cnt = self.croom.area.origin_area(self.cpp)
                 self.scrollscreen(screen)
 
             #deleting moving elements (to animate the movement)
@@ -484,6 +487,6 @@ class Maze:
             if addcoord is not None:
                 self.cpp += addcoord
                 self.scrollscreen(screen)
-                cnt = Block.area.origin_area(self.cpp)
+                cnt = self.croom.area.origin_area(self.cpp)
 
 

@@ -90,3 +90,7 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         pos = self.postopix(xoff, yoff, rr.x, rr.y)
         sz = self.sizetopix(rr.width, rr.height)
         return pygame.Rect(pos[0], pos[1], sz[0], sz[1])
+
+
+#area where the maze is shown
+mazearea = ScreenArea(0, 0, 800, 800, 20, 20)

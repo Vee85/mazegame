@@ -59,7 +59,7 @@ from pygame import sprite
 import pygame.locals as pyloc
 
 import src
-from src.mzgscreen import ScreenArea
+from src.mzgscreen import mazearea
 
 IMAGE_DIR = os.path.join(src.MAIN_DIR, '../images')
 ISGAME = True
@@ -86,7 +86,7 @@ class Block(sprite.Sprite, src.PosManager):
 
     resizable = True
     actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
-    area = ScreenArea(0, 0, 800, 800, 20, 20)
+    area = mazearea
 
     def __init__(self, bid, pos, rsize, bg=None):
         """Initialization:
