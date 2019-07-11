@@ -111,4 +111,4 @@ class ScreenArea(sprite.Sprite, src.PosManager):
 mazearea = ScreenArea(0, 0, 800, 800, 20, 20)
 
 #area where the maze is shown for editing
-editorarea = ScreenArea(0, 0, 1000, 1000, 20, 20)
+editorarea = ScreenArea(100, 100, 800, 800, 20, 20)

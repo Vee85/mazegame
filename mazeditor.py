@@ -479,6 +479,9 @@ class GridSupport(src.PosManager):
             block.aurect.x -= xshift[xcp]
             block.aurect.y -= yshift[ycp]
 
+    def drawonsurf(self, sface, clean=False):
+        pass
+
 
 class App(tk.Tk):
     """the editor container. Represents the top level class, contaning the editor.
@@ -642,11 +645,15 @@ class App(tk.Tk):
         else:
             self.pygscreen.fill((0, 0, 0)) #black
         if self.gridflag.get():
-            #pretending that offset is always zero when drawing
+            print("ococo")
+            #pretending that offset is always zero when drawing #@@@ to be fixed
             for x in self.gridsupport.xcs(0):
-                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((x, 0)), src.PosManager.postopix(0, 0, (x, src.PosManager.SIZE_X)))
+                pygame.draw.line(editorarea.image, self.gridsupport.GRIDCOL, src.PosManager.postopix((x, 0)), src.PosManager.postopix((x, src.PosManager.SIZE_X)))
+                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((x, 0)), src.PosManager.postopix((x, src.PosManager.SIZE_X)))
             for y in self.gridsupport.ycs(0):
-                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((0, y)), src.PosManager.postopix(0, 0, (src.PosManager.SIZE_Y, y)))
+                pygame.draw.line(editorarea.image, self.gridsupport.GRIDCOL, src.PosManager.postopix((0, y)), src.PosManager.postopix((src.PosManager.SIZE_Y, y)))
+                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((0, y)), src.PosManager.postopix((src.PosManager.SIZE_Y, y)))
+        pygame.time.wait(1000)
         if self.maze is not None:
             self.maze.draw(self.pygscreen)
 

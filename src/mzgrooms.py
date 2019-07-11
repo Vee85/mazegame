@@ -180,10 +180,17 @@ class Room:
         """Update all sprite blocks"""
         self.allblocks.update(xoff, yoff)
 
-    def draw(self, sface, off):
+    def draw(self, sface, off, bgim=None):
         """Draw all sprite blocks"""
         cnt = self.area.origin_area(off)
-        self.area.image.fill((0, 0, 0))
+        if isinstance(bgim, (list, tuple)):
+            self.area.image.fill(bgim)
+        elif isinstance(bgim, pygame.Surface):
+            self.area.image.blit(bgim)
+        elif bgim is None:
+            pass
+        else:
+            raise ValueError("wrong bgim parameter in Room.draw") 
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
                 self.area.image.blit(bb.image, bb.rect)
@@ -319,10 +326,10 @@ class Maze:
             newev = pygame.event.Event(src.DEATHEVENT)
             pygame.event.post(newev)
             return
-        screen.fill(self.BGCOL) #@@@ this line may be removed later since we use a surface for the game
+        screen.fill(self.BGCOL) #@@@ this line may be removed later since we use a surface for the game, or we will deleting other surfaces too
         self.croom.update(self.cpp[0], self.cpp[1])
         self.cursor.update(self.cpp[0], self.cpp[1])
-        self.croom.draw(screen, self.cpp)
+        self.croom.draw(screen, self.cpp, self.BGCOL)
 
     def crossdoor(self, doorid, destination):
         """Enter in a door: player position is reset to the destination door.
