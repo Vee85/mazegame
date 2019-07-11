@@ -70,6 +70,7 @@ def add_counter(cls):
     cls._idcounter = count(0)
     return cls
 
+
 class Block(sprite.Sprite, src.PosManager):
     '''Common interface for all sprite block types.
 
@@ -106,12 +107,12 @@ class Block(sprite.Sprite, src.PosManager):
         self.update(0, 0)
 
     @classmethod
-    def recttopix(cls, xoff, yoff, rr):
+    def recttopix(cls, rr, xoff=0, yoff=0):
         """Classmethod to use the correct recttopix method"""
         if ISGAME:
-            return cls.area.recttopix(xoff, yoff, rr)
+            return cls.area.recttopix(rr, xoff, yoff)
         else:
-            return super(Block, cls).recttopix(xoff, yoff, rr)
+            return super(Block, cls).recttopix(rr)
 
     @classmethod
     def sizetopix(cls, rr):
@@ -142,7 +143,7 @@ class Block(sprite.Sprite, src.PosManager):
     #prepare drawing, shift blocks to be in the screen
     def update(self, xoff, yoff):
         """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
-        self.rect = self.recttopix(xoff, yoff, self.aurect)
+        self.rect = self.recttopix(self.aurect, xoff, yoff)
 
     @property
     def rsize(self):
@@ -545,7 +546,7 @@ class EnemyBot(Block):
         if moddist >= (self.speed * src.TPF):
             self.aurect.x += self.curspeed[0] * src.TPF
             self.aurect.y += self.curspeed[1] * src.TPF
-            self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)
+            self.rect = self.recttopix(self.aurect, self.off[0], self.off[1])
         else:
             self.aurect.x = self.pathmarkers.sprites()[self._ipm].aurect.x
             self.aurect.y = self.pathmarkers.sprites()[self._ipm].aurect.y
@@ -841,4 +842,4 @@ class Character(Block):
             self.dvy = 0
 
         self.current_direction.clear()
-        self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)
+        self.rect = self.recttopix(self.aurect, self.off[0], self.off[1])

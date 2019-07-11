@@ -85,7 +85,7 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         ay = (yy / 1000) * (self.aurect.height -2*self._ymargin)
         return src.PosManager.sizetopix(ax, ay)
 
-    def recttopix(self, xoff, yoff, rr):
+    def recttopix(self, rr, xoff, yoff):
         """Converts a pygame.Rect or FlRect instance from arbitrary units to pixel units"""
         pos = self.postopix(xoff, yoff, rr.x, rr.y)
         sz = self.sizetopix(rr.width, rr.height)
