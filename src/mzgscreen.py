@@ -76,7 +76,7 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         yy = yy - (yoff * 1000)
         ax = (xx / 1000) * (self.aurect.width -2*self._xmargin) + self._xmargin
         ay = (yy / 1000) * (self.aurect.height - 2*self._ymargin) + self._ymargin
-        return src.PosManager.postopix(0, 0, ax, ay)
+        return src.PosManager.postopix(ax, ay)
     
     def sizetopix(self, *pp):
         """Converts size from arbitrary units to pixel units"""

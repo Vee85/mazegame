@@ -86,8 +86,6 @@ class PosManager:
     #unit is pixel
     SIZE_X = 1000
     SIZE_Y = 1000
-    MARGIN_X = 0
-    MARGIN_Y = 0
 
     @staticmethod
     def screen_size():
@@ -106,23 +104,22 @@ class PosManager:
         return float(xx), float(yy)
 
     @staticmethod
-    def postopix(xoff, yoff, *pp):
+    def postopix(*pp):
         """Converts an absolute position from arbitrary units to pixel units"""
         xx, yy = PosManager._argspar(pp)
-        xx = xx - (xoff * 1000)
-        yy = yy - (yoff * 1000)
-        px = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
-        py = round(((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)) + PosManager.MARGIN_Y)
+        px = round((xx / 1000) * PosManager.SIZE_X)
+        py = round((yy / 1000) * PosManager.SIZE_Y)
         return [px, py]
 
     @staticmethod
     def pixtopos(xoff, yoff, *pp):
         """Converts pixels to absolute position in arbitrary units."""
-        xx, yy = PosManager._argspar(pp)
-        uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
-        return [uxx + (xoff*1000), uyy + (yoff*1000)]
-    
+        # ~ xx, yy = PosManager._argspar(pp)
+        # ~ uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        # ~ uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        # ~ return [uxx + (xoff*1000), uyy + (yoff*1000)]
+        raise NotImplementedError("pixtopos")
+        
     @staticmethod
     def sizetopix(*pp):
         """Converts size from arbitrary units to pixel units
@@ -130,14 +127,14 @@ class PosManager:
         Size is an (x, y) pair denoting x and y sizes of a rect
         """
         xx, yy = PosManager._argspar(pp)
-        px = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        py = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        px = round((xx / 1000) * PosManager.SIZE_X)
+        py = round((yy / 1000) * PosManager.SIZE_Y)
         return [px, py]
 
     @staticmethod
-    def recttopix(xoff, yoff, rr):
+    def recttopix(rr):
         """Converts a pygame.Rect or FlRect instance from arbitrary units to pixel units"""
-        pos = PosManager.postopix(xoff, yoff, rr.x, rr.y)
+        pos = PosManager.postopix(rr.x, rr.y)
         sz = PosManager.sizetopix(rr.width, rr.height)
         return Rect(pos[0], pos[1], sz[0], sz[1])
 
