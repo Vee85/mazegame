@@ -76,6 +76,8 @@ class ScrollBlock(Block):
     Used only by the editor. 
     """
 
+    BGCOL = (200, 0, 0)
+    BGALPHA = 128
     resizable = False
     
     def __init__(self, pos, rsize, direction):
@@ -130,9 +132,18 @@ class DrawMaze(Maze):
         """Draw the blocks on the screen"""
         self.croom.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen, self.cpp, bgimage)
+
+        #drawing clickable area to scroll
+        for scarea in self.scrollareas:
+            rectsurf = pygame.Surface((scarea.rect.width, scarea.rect.height))
+            rectsurf.set_alpha(scarea.BGALPHA)
+            rectsurf.fill(scarea.BGCOL)
+            screen.blit(rectsurf, editorarea.corrpix_blit(scarea.rect))
+
         for bot in self.croom.bots.sprites():
             for mrk in bot.getmarkers():
-                screen.blit(mrk.image, self.croom.area.corrpix_blit(mrk.rect))
+                if self.croom.area.origin_area(self.cpp).contains(mrk.aurect):
+                    screen.blit(mrk.image, self.croom.area.corrpix_blit(mrk.rect))
 
         if self.cursor is not None and self.cursor.cridx == self.croom.roompos:
             self.cursor.update(self.cpp[0], self.cpp[1])
@@ -243,7 +254,7 @@ class WindAreainfo(Blockinfo):
     windvalues = {"UP" : 0, "UP-RIGHT" : 1, "RIGHT" : 2, "DOWN-RIGHT" : 3, "DOWN" : 4, "DOWN-LEFT" : 5, "LEFT" : 6, "TOP-LEFT" : 7}
     windforces = {"LIGHT" : 1, "MODERATE" : 2, "STRONG" : 3, "VERY STRONG" : 4}
 
-    def __init__(self, parent, iniwd=0, inistre=0, inivis=0):
+    def __init__(self, parent, iniwd=0, inistre=1, inivis=0):
         """Initialization"""
         super(WindAreainfo, self).__init__(parent)
         self.labeldir = tk.Label(self, text="Wind direction")
@@ -643,17 +654,19 @@ class App(tk.Tk):
         bgsurf = None
         if self.maze is not None:
             self.pygscreen.fill(self.maze.BGCOL)
+            bgsurf = self.maze.BGCOL
         else:
             self.pygscreen.fill((0, 0, 0)) #black
         if self.gridflag.get():
             bgsurf = pygame.Surface((editorarea.aurect.width, editorarea.aurect.height))
-            #pretending that offset is always zero when drawing #@@@ to be fixed
+            #pretending that offset is always zero when drawing
             for x in self.gridsupport.xcs(0):
                 pygame.draw.line(bgsurf, self.gridsupport.GRIDCOL, editorarea.postopix(0, 0, x, 0), editorarea.postopix(0, 0, x, 1000))
             for y in self.gridsupport.ycs(0):
                 pygame.draw.line(bgsurf, self.gridsupport.GRIDCOL, editorarea.postopix(0, 0, 0, y), editorarea.postopix(0, 0, 1000, y))
         if self.maze is not None:
             self.maze.draw(self.pygscreen, bgsurf)
+
 
     def pygameloop(self):
         """The editor main loop for the pygame part"""
@@ -703,7 +716,7 @@ class App(tk.Tk):
                             self.blockdialog(self.grabbed)
                     elif self.grabbed is None and event.button == 1:
                         for scb in self.maze.scrollareas.sprites():
-                            if scb.rect.collidepoint(event.pos):
+                            if scb.rect.collidepoint(editorarea.corrpix_comp(event.pos)):
                                 break
                         else:
                             if dbclock.tick() < DOUBLECLICKTIME:
@@ -716,7 +729,7 @@ class App(tk.Tk):
                     self.draw()
                     self.grabbed = None
                     for scb in self.maze.scrollareas.sprites():
-                        if scb.rect.collidepoint(event.pos):
+                        if scb.rect.collidepoint(editorarea.corrpix_comp(event.pos)):
                             scb.scrolling_event()
                             break
                 elif event.type == pyloc.MOUSEMOTION and self.maze is not None:
