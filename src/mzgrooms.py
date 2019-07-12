@@ -42,7 +42,8 @@ import numpy as np
 import pygame
 
 from src.mzgblocks import *
-from src.mzgscreen import mazearea
+from src.mzgscreen import mazearea, editorarea
+from src import ISGAME
 
 SAVE_DIR = os.path.join(src.MAIN_DIR, '../saves')
 
@@ -53,7 +54,10 @@ class Room:
     Instances of this class (and their methods) should be managed by the Maze class.
     """
 
-    area = mazearea
+    if ISGAME:
+        area = mazearea
+    else:
+        area = editorarea
 
     def __init__(self, rp, isgame):
         """Initialization:
@@ -176,10 +180,17 @@ class Room:
         """Update all sprite blocks"""
         self.allblocks.update(xoff, yoff)
 
-    def draw(self, sface, off):
+    def draw(self, sface, off, bgim=None):
         """Draw all sprite blocks"""
         cnt = self.area.origin_area(off)
-        self.area.image.fill((0, 0, 0))
+        if isinstance(bgim, (list, tuple)):
+            self.area.image.fill(bgim)
+        elif isinstance(bgim, pygame.Surface):
+            self.area.image.blit(bgim, (0, 0))
+        elif bgim is None:
+            pass
+        else:
+            raise ValueError("wrong bgim parameter in Room.draw") 
         for bb in self.allblocks:
             if cnt.colliderect(bb.aurect):
                 self.area.image.blit(bb.image, bb.rect)
@@ -315,10 +326,10 @@ class Maze:
             newev = pygame.event.Event(src.DEATHEVENT)
             pygame.event.post(newev)
             return
-        screen.fill(self.BGCOL) #@@@ this line may be removed later since we use a surface for the game
+        screen.fill(self.BGCOL) #@@@ this line may be removed later since we use a surface for the game, or we will deleting other surfaces too
         self.croom.update(self.cpp[0], self.cpp[1])
         self.cursor.update(self.cpp[0], self.cpp[1])
-        self.croom.draw(screen, self.cpp)
+        self.croom.draw(screen, self.cpp, self.BGCOL)
 
     def crossdoor(self, doorid, destination):
         """Enter in a door: player position is reset to the destination door.
@@ -393,7 +404,7 @@ class Maze:
                 elif event.type == src.TAKEKEYEVENT:
                     drawdoors = self.keytaken(event.key_id, event.openeddoor)
                     for drd in drawdoors:
-                        screen.blit(drd.image, drd.rect)
+                        screen.blit(drd.image, self.croom.area.corrpix_blit(drd.rect))
                 elif event.type == src.CHECKPEVENT:
                     self.savepoint(event.key_id)
                 elif event.type == src.ENTERINGEVENT:
@@ -413,9 +424,9 @@ class Maze:
                 self.scrollscreen(screen)
 
             #deleting moving elements (to animate the movement)
-            screen.fill(self.BGCOL, self.cursor.rect)
+            screen.fill(self.BGCOL, self.croom.area.corrpix_blit(self.cursor.rect))
             for bot in self.croom.bots.sprites():
-                screen.fill(self.BGCOL, bot.rect)
+                screen.fill(self.BGCOL, self.croom.area.corrpix_blit(bot.rect))
 
             #redrawing blocks where player or bots have passed
             for hob in self.croom.hoveringsprites():
@@ -424,7 +435,7 @@ class Maze:
                         innerarea = mvspr.rect.copy()
                         innerarea.x -= hob.rect.x
                         innerarea.y -= hob.rect.y
-                        screen.blit(hob.image, mvspr.rect, area=innerarea)
+                        screen.blit(hob.image, self.croom.area.corrpix_blit(mvspr.rect), area=innerarea)
 
             #checking if the character is entering a checkpoint
             if kup:
@@ -449,7 +460,7 @@ class Maze:
                     if lkk.aurect.contains(self.cursor.aurect) and not lkk.taken:
                         lkk.takingkey_event()
                         lkk.taken = True
-                        screen.blit(lkk.image, lkk.rect)
+                        screen.blit(lkk.image, self.croom.area.corrpix_blit(lkk.rect))
                         break
 
             #adjusting force field if entering or leaving a windarea
@@ -475,11 +486,11 @@ class Maze:
 
             #handling movement drawing - bots moved but drawn only if inside ScreenArea.
             self.cursor.movecharacter(self.croom.walls, self.croom.ladders)
-            screen.blit(self.cursor.image, self.cursor.rect)
+            screen.blit(self.cursor.image, self.croom.area.corrpix_blit(self.cursor.rect))
             for bot in self.croom.bots.sprites():
                 bot.movebot()
                 if cnt.contains(bot.aurect):
-                    screen.blit(bot.image, bot.rect)
+                    screen.blit(bot.image, self.croom.area.corrpix_blit(bot.rect))
 
             pygame.display.update()
             addcoord = self.cursor.insidearea()
@@ -488,5 +499,3 @@ class Maze:
                 self.cpp += addcoord
                 self.scrollscreen(screen)
                 cnt = self.croom.area.origin_area(self.cpp)
-
-

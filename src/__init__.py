@@ -53,6 +53,8 @@ ONCLICKEVENT = pyloc.USEREVENT + 4
 ENTERINGEVENT = pyloc.USEREVENT + 5
 EXITINGEVENT = pyloc.USEREVENT + 6
 
+ISGAME = True
+
 
 def checksign(x):
     """Check the sign of the argument, returning 0 (x == 0), 1 (x > 0) or -1 (x < 0)"""

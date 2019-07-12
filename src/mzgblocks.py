@@ -59,10 +59,9 @@ from pygame import sprite
 import pygame.locals as pyloc
 
 import src
-from src.mzgscreen import mazearea
+from src.mzgscreen import mazearea, editorarea
 
 IMAGE_DIR = os.path.join(src.MAIN_DIR, '../images')
-ISGAME = True
 
 
 def add_counter(cls):
@@ -86,7 +85,10 @@ class Block(sprite.Sprite, src.PosManager):
 
     resizable = True
     actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
-    area = mazearea
+    if src.ISGAME:
+        area = mazearea
+    else:
+        area = editorarea
 
     def __init__(self, bid, pos, rsize, bg=None):
         """Initialization:
@@ -109,18 +111,17 @@ class Block(sprite.Sprite, src.PosManager):
     @classmethod
     def recttopix(cls, rr, xoff=0, yoff=0):
         """Classmethod to use the correct recttopix method"""
-        if ISGAME:
-            return cls.area.recttopix(rr, xoff, yoff)
-        else:
-            return super(Block, cls).recttopix(rr)
+        return cls.area.recttopix(rr, xoff, yoff)
+        # ~ else:
+            # ~ return super(Block, cls).recttopix(rr)
 
     @classmethod
     def sizetopix(cls, rr):
         """Classmethod to use the correct sizetopix method"""
-        if ISGAME:
-            return cls.area.sizetopix(rr)
-        else:
-            return super(Block, cls).sizetopix(rr)
+        # ~ if src.ISGAME:
+        return cls.area.sizetopix(rr)
+        # ~ else:
+            # ~ return super(Block, cls).sizetopix(rr)
 
     def fillimage(self):
         """Fill the image with the bg color or mosaic tile.
@@ -226,7 +227,7 @@ class Marker(Block):
         by the game or by the editor.
         """
         self.ref = ref
-        if ISGAME:
+        if src.ISGAME:
             bg = None
         else:
             bg = self.BGCOL
@@ -235,7 +236,7 @@ class Marker(Block):
         
     def fillimage(self):
         super(Marker, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(self.ref, self._id)
 
     def reprline(self):
@@ -353,7 +354,7 @@ class Door(Block):
         
     def fillimage(self):
         super(Door, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(self._id, self.destination)
 
     @property
@@ -422,7 +423,7 @@ class Key(Block):
 
     def fillimage(self):
         super(Key, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(*self.whoopen)
 
     @property
@@ -486,7 +487,7 @@ class EnemyBot(Block):
         
     def fillimage(self):
         super(EnemyBot, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(self._id)
         
     def reprline(self):
@@ -604,7 +605,7 @@ class WindArea(Block):
         else:
             self.bg = None
             self.image.fill((0, 0, 0))
-        if not ISGAME:
+        if not src.ISGAME:
             pygame.draw.rect(self.image, (100, 0, 0), self.image.get_rect(), 10)
             self.blitinfo(*self._windpar)
             

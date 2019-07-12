@@ -91,6 +91,32 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         sz = self.sizetopix(rr.width, rr.height)
         return pygame.Rect(pos[0], pos[1], sz[0], sz[1])
 
+    def pixtopos(self, xoff, yoff, *pp):
+        """Converts pixel coordinate to absolute position in arbitrary units."""
+        xx, yy = src.PosManager._argspar(pp)
+        uxx = round(1000 * xx / (self.aurect.width -2*self._xmargin))
+        uyy = round(1000 * yy / (self.aurect.height -2*self._ymargin))
+        return [uxx + (xoff*1000), uyy + (yoff*1000)]
 
-#area where the maze is shown
+    def corrpix_blit(self, pos):
+        """Return corrected pixel position for blitting"""
+        if isinstance(pos, (src.FlRect, pygame.Rect)):
+            return pos.move(self.aurect.x, self.aurect.y)
+        elif isinstance(pos, (list, tuple, np.ndarray)):
+            return (pos[0] + self.aurect.x, pos[1] + self.aurect.y)
+        else:
+            raise ValueError("Error, wrong pos argument in ScreenArea.corrpix")
+
+    def corrpix_comp(self, pos):
+        """Return corrected pixel position for comparing"""
+        if isinstance(pos, (list, tuple, np.ndarray)):
+            return (pos[0] - self.aurect.x, pos[1] - self.aurect.y)
+        else:
+            raise ValueError("Error, wrong pos argument in ScreenArea.corrpix")
+
+
+#area where the maze is shown for gaming
 mazearea = ScreenArea(0, 0, 800, 800, 20, 20)
+
+#area where the maze is shown for editing
+editorarea = ScreenArea(100, 100, 800, 800, 20, 20)
