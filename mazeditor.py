@@ -126,17 +126,17 @@ class DrawMaze(Maze):
         #cannot use super here, we want to override the parent behaviour
         self._croom = val
 
-    def draw(self, screen):
+    def draw(self, screen, bgimage=None):
         """Draw the blocks on the screen"""
         self.croom.update(self.cpp[0], self.cpp[1])
-        self.croom.draw(screen, self.cpp)
+        self.croom.draw(screen, self.cpp, bgimage)
         for bot in self.croom.bots.sprites():
             for mrk in bot.getmarkers():
-                screen.blit(mrk.image, mrk.rect)
+                screen.blit(mrk.image, self.croom.area.corrpix_blit(mrk.rect))
 
         if self.cursor is not None and self.cursor.cridx == self.croom.roompos:
             self.cursor.update(self.cpp[0], self.cpp[1])
-            screen.blit(self.cursor.image, self.cursor.rect)
+            screen.blit(self.cursor.image, self.croom.area.corrpix_blit(self.cursor.rect))
 
     def getallblocks(self, iroom):
         """Return a list of all the sprites in the current room"""
@@ -229,7 +229,7 @@ class EnemyBotinfo(Blockinfo):
 
     def getinfo(self):
         """Overriding method: return a list of the extra parameters"""
-        ux, uy = editorarea.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
+        ux, uy = editorarea.pixtopos(self.cpp[0], self.cpp[1], editorarea.corrpix_comp(self.blockpos))
         ll = [(ux + (i*50), uy) for i in range(1, int(self.nummarker.get())+1)]
         return [el for sl in ll for el in sl]
 
@@ -328,7 +328,7 @@ class NewBlockDialog(tk.Toplevel):
             blocktype = self.blocktypes.get()
             if blocktype in self.allblocks:
                 nid = next(getattr(src.mzgblocks, blocktype)._idcounter)
-                idepos = [nid] + editorarea.pixtopos(self.cpp[0], self.cpp[1], self.blockpos)
+                idepos = [nid] + editorarea.pixtopos(self.cpp[0], self.cpp[1], *editorarea.corrpix_comp(self.blockpos))
                 addparam = []
                 if self.custompanel is not None:
                     extrapar = self.custompanel.getinfo()
@@ -445,16 +445,16 @@ class GridSupport(src.PosManager):
         self.makegrid()
 
     def makegrid(self):
-        self._xcs = np.arange(0, self.SIZE_X+1, self.GRIDSIZE)
-        self._ycs = np.arange(0, self.SIZE_Y+1, self.GRIDSIZE)
+        self._xcs = np.arange(0, 1001, self.GRIDSIZE)
+        self._ycs = np.arange(0, 1001, self.GRIDSIZE)
         
     def xcs(self, xoff):
         """Return x coordinates of the grid. xoff is the screen offset on x coordinate"""
-        return (xoff*self.SIZE_X) + self._xcs
+        return (xoff*1000) + self._xcs
 
     def ycs(self, yoff):
         """Return y coordinates of the grid. yoff is the screen offset on y coordinate"""
-        return (yoff*self.SIZE_Y) + self._ycs
+        return (yoff*1000) + self._ycs
 
     def resetblock(self, off, block, issize):
         """Reset block position
@@ -640,22 +640,20 @@ class App(tk.Tk):
 
     def draw(self):
         """Draw the screen, both grid (if needed) and blocks"""
+        bgsurf = None
         if self.maze is not None:
             self.pygscreen.fill(self.maze.BGCOL)
         else:
             self.pygscreen.fill((0, 0, 0)) #black
         if self.gridflag.get():
-            print("ococo")
+            bgsurf = pygame.Surface((editorarea.aurect.width, editorarea.aurect.height))
             #pretending that offset is always zero when drawing #@@@ to be fixed
             for x in self.gridsupport.xcs(0):
-                pygame.draw.line(editorarea.image, self.gridsupport.GRIDCOL, src.PosManager.postopix((x, 0)), src.PosManager.postopix((x, src.PosManager.SIZE_X)))
-                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((x, 0)), src.PosManager.postopix((x, src.PosManager.SIZE_X)))
+                pygame.draw.line(bgsurf, self.gridsupport.GRIDCOL, editorarea.postopix(0, 0, x, 0), editorarea.postopix(0, 0, x, 1000))
             for y in self.gridsupport.ycs(0):
-                pygame.draw.line(editorarea.image, self.gridsupport.GRIDCOL, src.PosManager.postopix((0, y)), src.PosManager.postopix((src.PosManager.SIZE_Y, y)))
-                pygame.draw.line(self.pygscreen, self.gridsupport.GRIDCOL, src.PosManager.postopix((0, y)), src.PosManager.postopix((src.PosManager.SIZE_Y, y)))
-        pygame.time.wait(1000)
+                pygame.draw.line(bgsurf, self.gridsupport.GRIDCOL, editorarea.postopix(0, 0, 0, y), editorarea.postopix(0, 0, 1000, y))
         if self.maze is not None:
-            self.maze.draw(self.pygscreen)
+            self.maze.draw(self.pygscreen, bgsurf)
 
     def pygameloop(self):
         """The editor main loop for the pygame part"""
@@ -726,27 +724,28 @@ class App(tk.Tk):
                         if pygame.key.get_pressed()[pyloc.K_LCTRL] and self.grabbed.resizable:
                             nw = self.grabbed.rsize[0] + event.rel[0]
                             nh = self.grabbed.rsize[1] + event.rel[1]
-                            self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
+                            self.pygscreen.fill(self.maze.BGCOL, editorarea.corrpix_blit(self.grabbed.rect))
                             self.grabbed.rsize = [nw, nh]
                             self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
-                            self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
+                            self.pygscreen.blit(self.grabbed.image, editorarea.corrpix_blit(self.grabbed.rect))
                         else:
-                            self.pygscreen.fill(self.maze.BGCOL, self.grabbed.rect)
+                            self.pygscreen.fill(self.maze.BGCOL, editorarea.corrpix_blit(self.grabbed.rect))
                             self.grabbed.aurect.x += event.rel[0]
                             self.grabbed.aurect.y += event.rel[1]
                             self.grabbed.update(self.maze.cpp[0], self.maze.cpp[1])
-                            self.pygscreen.blit(self.grabbed.image, self.grabbed.rect)
+                            self.pygscreen.blit(self.grabbed.image, editorarea.corrpix_blit(self.grabbed.rect))
 
             pygame.display.update()
             
     def grabblock(self, mpos):
         """grab a block to perform basic actions on it (moving, resizing, or open the BlockActions dialog)"""
+        corrpos = editorarea.corrpix_comp(mpos)
         bll = self.maze.getallblocks(self.maze.croom)
         if self.maze.cursor.cridx == self.maze.croom.roompos:
             bll.append(self.maze.cursor)
         
         for block in bll:
-            if block.rect.collidepoint(mpos):
+            if block.rect.collidepoint(corrpos):
                 return block
         return None
 
