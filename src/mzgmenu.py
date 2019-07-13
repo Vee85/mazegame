@@ -171,7 +171,7 @@ class PgLabel(PgWidget):
         self.font = font
         mfont = pygame.font.Font(self.font, self.sizetopix(0, textheight)[1])
         surftext = mfont.render(self.text, True, textcolor)
-        super(PgLabel, self).__init__(surftext, self.postopix(0, 0, pos))
+        super(PgLabel, self).__init__(surftext, self.postopix(pos))
 
 
 class PgButton(PgWidget):
@@ -196,7 +196,7 @@ class PgButton(PgWidget):
         self.font = font
         self.textheight = textheight
         wgsurf = self.drawbutton(self.BGCOL)
-        super(PgButton, self).__init__(wgsurf, self.postopix(0, 0, pos))
+        super(PgButton, self).__init__(wgsurf, self.postopix(pos))
 
     def drawbutton(self, bgc):
         """creates the pygame.Surface instance with the text of the button"""

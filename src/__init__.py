@@ -53,6 +53,8 @@ ONCLICKEVENT = pyloc.USEREVENT + 4
 ENTERINGEVENT = pyloc.USEREVENT + 5
 EXITINGEVENT = pyloc.USEREVENT + 6
 
+ISGAME = True
+
 
 def checksign(x):
     """Check the sign of the argument, returning 0 (x == 0), 1 (x > 0) or -1 (x < 0)"""
@@ -86,8 +88,6 @@ class PosManager:
     #unit is pixel
     SIZE_X = 1000
     SIZE_Y = 1000
-    MARGIN_X = 20
-    MARGIN_Y = 20
 
     @staticmethod
     def screen_size():
@@ -106,23 +106,22 @@ class PosManager:
         return float(xx), float(yy)
 
     @staticmethod
-    def postopix(xoff, yoff, *pp):
+    def postopix(*pp):
         """Converts an absolute position from arbitrary units to pixel units"""
         xx, yy = PosManager._argspar(pp)
-        xx = xx - (xoff * 1000)
-        yy = yy - (yoff * 1000)
-        px = round(((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X)) + PosManager.MARGIN_X)
-        py = round(((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y)) + PosManager.MARGIN_Y)
+        px = round((xx / 1000) * PosManager.SIZE_X)
+        py = round((yy / 1000) * PosManager.SIZE_Y)
         return [px, py]
 
     @staticmethod
     def pixtopos(xoff, yoff, *pp):
         """Converts pixels to absolute position in arbitrary units."""
-        xx, yy = PosManager._argspar(pp)
-        uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
-        return [uxx + (xoff*1000), uyy + (yoff*1000)]
-    
+        # ~ xx, yy = PosManager._argspar(pp)
+        # ~ uxx = round(1000 * (xx - PosManager.MARGIN_X) / (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
+        # ~ uyy = round(1000 * (yy - PosManager.MARGIN_Y) / (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        # ~ return [uxx + (xoff*1000), uyy + (yoff*1000)]
+        raise NotImplementedError("pixtopos")
+        
     @staticmethod
     def sizetopix(*pp):
         """Converts size from arbitrary units to pixel units
@@ -130,14 +129,14 @@ class PosManager:
         Size is an (x, y) pair denoting x and y sizes of a rect
         """
         xx, yy = PosManager._argspar(pp)
-        px = round((xx / 1000) * (PosManager.SIZE_X - 2*PosManager.MARGIN_X))
-        py = round((yy / 1000) * (PosManager.SIZE_Y - 2*PosManager.MARGIN_Y))
+        px = round((xx / 1000) * PosManager.SIZE_X)
+        py = round((yy / 1000) * PosManager.SIZE_Y)
         return [px, py]
 
     @staticmethod
-    def recttopix(xoff, yoff, rr):
+    def recttopix(rr):
         """Converts a pygame.Rect or FlRect instance from arbitrary units to pixel units"""
-        pos = PosManager.postopix(xoff, yoff, rr.x, rr.y)
+        pos = PosManager.postopix(rr.x, rr.y)
         sz = PosManager.sizetopix(rr.width, rr.height)
         return Rect(pos[0], pos[1], sz[0], sz[1])
 
@@ -249,9 +248,14 @@ class FlRect:
         """String representation of the class"""
         return f"<FlRect({self._x}, {self._y}, {self._w}, {self._h})>"
 
-    def getRect(self):
-        """Return a pygame.Rect object with rounded coordinates"""
-        return Rect(round(self._x), round(self._y), round(self._w), round(self._h))
+    def get_rect(self, off=np.array([0, 0])):
+        """Return a pygame.Rect object with rounded coordinates
+
+        off is the screen offset (a 2-length array), to place the rect in the screen.
+        default, no offset.
+        """
+        coff = off * 1000
+        return Rect(round(self._x) - coff[0], round(self._y) - coff[1], round(self._w), round(self._h))
 
     def move(self, *off):
         """Equivalent to the 'move' method of pygame.Rect"""
@@ -274,6 +278,17 @@ class FlRect:
         boolx = (self.right >= other.right) and (self.left <= other.left)
         booly = (self.bottom >= other.bottom) and (self.top <= other.top)
         return boolx and booly
+
+    def clip(self, other):
+        """Equivalent to the 'clip' method of pygame.Rect. In case of no intersection, returns None"""
+        if self.colliderect(other):
+            cx = max(self.x, other.x)
+            cy = max(self.y, other.y)
+            cw = min(self.right, other.right) - cx
+            ch = min(self.bottom, other.bottom) - cy
+            return FlRect(cx, cy, cw, ch)
+        else:
+            return None
 
     def distance(self, other):
         """Calculate distance from another FlRect, using the center as reference.

@@ -59,9 +59,9 @@ from pygame import sprite
 import pygame.locals as pyloc
 
 import src
+from src.mzgscreen import mazearea, editorarea
 
 IMAGE_DIR = os.path.join(src.MAIN_DIR, '../images')
-ISGAME = True
 
 
 def add_counter(cls):
@@ -85,6 +85,10 @@ class Block(sprite.Sprite, src.PosManager):
 
     resizable = True
     actionmenu = {"Delete" : "delete", "Move to another room" : "move"}
+    if src.ISGAME:
+        area = mazearea
+    else:
+        area = editorarea
 
     def __init__(self, bid, pos, rsize, bg=None):
         """Initialization:
@@ -103,6 +107,18 @@ class Block(sprite.Sprite, src.PosManager):
 
         #place block to its coordinates
         self.update(0, 0)
+
+    @classmethod
+    def recttopix(cls, rr, xoff=0, yoff=0):
+        """Classmethod to use the correct recttopix method"""
+        return cls.area.recttopix(rr, xoff, yoff)
+
+
+    @classmethod
+    def sizetopix(cls, rr):
+        """Classmethod to use the correct sizetopix method"""
+        return cls.area.sizetopix(rr)
+
 
     def fillimage(self):
         """Fill the image with the bg color or mosaic tile.
@@ -125,7 +141,7 @@ class Block(sprite.Sprite, src.PosManager):
     #prepare drawing, shift blocks to be in the screen
     def update(self, xoff, yoff):
         """Create or update the 'rect' attribute with a pygame.Rect with the current position / size"""
-        self.rect = self.recttopix(xoff, yoff, self.aurect.getRect())
+        self.rect = self.recttopix(self.aurect, xoff, yoff)
 
     @property
     def rsize(self):
@@ -134,7 +150,7 @@ class Block(sprite.Sprite, src.PosManager):
     @rsize.setter
     def rsize(self, newsize):
         if self.resizable:
-            nwpxsize = self.sizetopix(newsize) #@@@this should not be resolution dependent. How to?
+            nwpxsize = self.sizetopix(newsize)
             if any([i <= 2 for i in nwpxsize]):
                 return
             self.aurect.width = newsize[0]
@@ -208,7 +224,7 @@ class Marker(Block):
         by the game or by the editor.
         """
         self.ref = ref
-        if ISGAME:
+        if src.ISGAME:
             bg = None
         else:
             bg = self.BGCOL
@@ -217,7 +233,7 @@ class Marker(Block):
         
     def fillimage(self):
         super(Marker, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(self.ref, self._id)
 
     def reprline(self):
@@ -312,13 +328,13 @@ class Door(Block):
     rectsize = [50, 50]
     label = 'D'
     LDOOR = pygame.image.load(os.path.join(IMAGE_DIR, "lockeddoor.png"))
-    LOCKEDDOOR = pygame.transform.scale(LDOOR, src.PosManager.sizetopix(rectsize))
+    LOCKEDDOOR = pygame.transform.scale(LDOOR, Block.sizetopix(rectsize))
     ODOOR = pygame.image.load(os.path.join(IMAGE_DIR, "opendoor.png"))
-    OPENDOOR = pygame.transform.scale(ODOOR, src.PosManager.sizetopix(rectsize))
+    OPENDOOR = pygame.transform.scale(ODOOR, Block.sizetopix(rectsize))
     LEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "lockedexit.png"))
-    LOCKEDEXIT = pygame.transform.scale(LEXIT, src.PosManager.sizetopix(rectsize))
+    LOCKEDEXIT = pygame.transform.scale(LEXIT, Block.sizetopix(rectsize))
     OEXIT = pygame.image.load(os.path.join(IMAGE_DIR, "openexit.png"))
-    OPENEXIT = pygame.transform.scale(OEXIT, src.PosManager.sizetopix(rectsize))
+    OPENEXIT = pygame.transform.scale(OEXIT, Block.sizetopix(rectsize))
 
     def __init__(self, bid, pos, doorid, lock):
         """Initialization:
@@ -335,7 +351,7 @@ class Door(Block):
         
     def fillimage(self):
         super(Door, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(self._id, self.destination)
 
     @property
@@ -388,7 +404,7 @@ class Key(Block):
     rectsize = [50, 50]
     label = 'K'
     RAWIMKEY = pygame.image.load(os.path.join(IMAGE_DIR, "key.png"))
-    IMKEY = pygame.transform.scale(RAWIMKEY, src.PosManager.sizetopix(rectsize))
+    IMKEY = pygame.transform.scale(RAWIMKEY, Block.area.sizetopix(rectsize))
 
     def __init__(self, bid, pos, dooridlist):
         """Initialization:
@@ -404,7 +420,7 @@ class Key(Block):
 
     def fillimage(self):
         super(Key, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(*self.whoopen)
 
     @property
@@ -468,7 +484,7 @@ class EnemyBot(Block):
         
     def fillimage(self):
         super(EnemyBot, self).fillimage()
-        if not ISGAME:
+        if not src.ISGAME:
             self.blitinfo(self._id)
         
     def reprline(self):
@@ -528,7 +544,7 @@ class EnemyBot(Block):
         if moddist >= (self.speed * src.TPF):
             self.aurect.x += self.curspeed[0] * src.TPF
             self.aurect.y += self.curspeed[1] * src.TPF
-            self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)
+            self.rect = self.recttopix(self.aurect, self.off[0], self.off[1])
         else:
             self.aurect.x = self.pathmarkers.sprites()[self._ipm].aurect.x
             self.aurect.y = self.pathmarkers.sprites()[self._ipm].aurect.y
@@ -586,7 +602,7 @@ class WindArea(Block):
         else:
             self.bg = None
             self.image.fill((0, 0, 0))
-        if not ISGAME:
+        if not src.ISGAME:
             pygame.draw.rect(self.image, (100, 0, 0), self.image.get_rect(), 10)
             self.blitinfo(*self._windpar)
             
@@ -627,7 +643,7 @@ class Checkpoint(Block):
     rectsize = [50, 50]
     label = 'C'
     RAWIMCP = pygame.image.load(os.path.join(IMAGE_DIR, "checkpoint.png"))
-    IMCP = pygame.transform.scale(RAWIMCP, src.PosManager.sizetopix(rectsize))
+    IMCP = pygame.transform.scale(RAWIMCP, Block.area.sizetopix(rectsize))
     
     def __init__(self, bid, pos):
         super(Checkpoint, self).__init__(bid, pos, self.rectsize, self.IMCP)
@@ -692,25 +708,27 @@ class Character(Block):
 
     def update(self, xoff, yoff):
         """Override method of base class to store also current offset"""
-        self.off = [xoff, yoff]
+        self.off = np.array([xoff, yoff])
         super(Character, self).update(xoff, yoff)
             
-    def insidesurf(self, sface):
-        """Check if the block is inside the surface 'sface'.
+    def insidearea(self):
+        """Check if the character is inside the shown area of the room.
 
-        Used to check if character is in the screen: if not, return the
-        corresponding offset in order to draw the next part of the room.
+        Returns None if is inside, otherwise returns the corresponding
+        offset in order to draw the next part of the room.
         """
-        if sface.get_rect().contains(self.rect):
+        coff = self.off * 1000
+        cnt = src.FlRect(coff[0], coff[1], coff[0]+1000, coff[1]+1000)
+        if cnt.contains(self.aurect):
             return None
         else:
-            if self.rect.top < sface.get_rect().top:
+            if self.aurect.centery < cnt.top:
                 return np.array([0, -1])
-            elif self.rect.left < sface.get_rect().left:
+            elif self.aurect.centerx < cnt.left:
                 return np.array([-1, 0])
-            elif self.rect.bottom > sface.get_rect().bottom:
+            elif self.aurect.centery > cnt.bottom:
                 return np.array([0, 1])
-            elif self.rect.right > sface.get_rect().right:
+            elif self.aurect.centerx > cnt.right:
                 return np.array([1, 0])
       
     def getdirmove(self):
@@ -822,4 +840,4 @@ class Character(Block):
             self.dvy = 0
 
         self.current_direction.clear()
-        self.rect = self.recttopix(self.off[0], self.off[1], self.aurect)
+        self.rect = self.recttopix(self.aurect, self.off[0], self.off[1])
