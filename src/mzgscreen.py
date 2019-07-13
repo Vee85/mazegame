@@ -22,8 +22,12 @@
 #  
 #  
 
-"""Contains classes to manage the screen division.
+"""Contains classes and instances to manage the screen division.
 
+ScreenArea - Define an area of the screen, providing methods to coordinates to pixel conversion.
+Defines instances of ScreenArea:
+* mazearea - used by the game to show the maze and play
+* editorarea - used by the editor to build the game
 """
 
 import os
@@ -117,6 +121,9 @@ class ScreenArea(sprite.Sprite, src.PosManager):
 
 #area where the maze is shown for gaming
 mazearea = ScreenArea(0, 0, 800, 800, 20, 20)
+
+#area where game info are shown
+ginfoarea = ScreenArea(800, 0, 200, 1000, 10, 10)
 
 #area where the maze is shown for editing
 editorarea = ScreenArea(100, 100, 800, 800, 20, 20)

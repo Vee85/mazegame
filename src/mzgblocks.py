@@ -112,16 +112,13 @@ class Block(sprite.Sprite, src.PosManager):
     def recttopix(cls, rr, xoff=0, yoff=0):
         """Classmethod to use the correct recttopix method"""
         return cls.area.recttopix(rr, xoff, yoff)
-        # ~ else:
-            # ~ return super(Block, cls).recttopix(rr)
+
 
     @classmethod
     def sizetopix(cls, rr):
         """Classmethod to use the correct sizetopix method"""
-        # ~ if src.ISGAME:
         return cls.area.sizetopix(rr)
-        # ~ else:
-            # ~ return super(Block, cls).sizetopix(rr)
+
 
     def fillimage(self):
         """Fill the image with the bg color or mosaic tile.
@@ -153,7 +150,7 @@ class Block(sprite.Sprite, src.PosManager):
     @rsize.setter
     def rsize(self, newsize):
         if self.resizable:
-            nwpxsize = self.sizetopix(newsize) #@@@this should not be resolution dependent. How to?
+            nwpxsize = self.sizetopix(newsize)
             if any([i <= 2 for i in nwpxsize]):
                 return
             self.aurect.width = newsize[0]
