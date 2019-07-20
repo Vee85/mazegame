@@ -38,6 +38,7 @@ from pygame import sprite
 import pygame.locals as pyloc
 
 import src
+from src.mzgwidgets import *
 
 
 class ScreenArea(sprite.Sprite, src.PosManager):
@@ -119,11 +120,22 @@ class ScreenArea(sprite.Sprite, src.PosManager):
             raise ValueError("Error, wrong pos argument in ScreenArea.corrpix")
 
 
+class InfoArea(ScreenArea):
+
+    def __init__(self, screen, x, y, w, h, xm, ym):
+        super(InfoArea, self).__init__(x, y, w, h, xm, ym)
+        self.screen = screen
+        self.postxt = PgTextArea((810, 10), 20)
+        self.postxt.show(self.screen)
+
+    def updatepos(self, txt):
+        self.postxt.write(txt)
+        self.postxt.show(self.screen)
+
+
+
 #area where the maze is shown for gaming
 mazearea = ScreenArea(0, 0, 800, 800, 20, 20)
-
-#area where game info are shown
-ginfoarea = ScreenArea(800, 0, 200, 1000, 10, 10)
 
 #area where the maze is shown for editing
 editorarea = ScreenArea(100, 100, 800, 800, 20, 20)

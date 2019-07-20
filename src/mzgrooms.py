@@ -222,6 +222,7 @@ class Maze:
         self.isgame = isgame
         self.filename = fn
         self.chpfilename = os.path.join(SAVE_DIR, "checkpoint")
+        self.iarea = None
         self.rooms = None
         self.cursor = None
         self._croom = None
@@ -330,6 +331,7 @@ class Maze:
         self.croom.update(self.cpp[0], self.cpp[1])
         self.cursor.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen, self.cpp, self.BGCOL)
+        self.iarea.updatepos(str(self.cpp))
 
     def crossdoor(self, doorid, destination):
         """Enter in a door: player position is reset to the destination door.
