@@ -22,6 +22,11 @@
 #  
 #
 
+"""Contains the TopLevel class of the whole game.
+
+TopLev -- The class holding the menu, connecting the callbacks and starting the game.
+"""
+
 import sys
 import os
 import pygame
@@ -33,8 +38,8 @@ from src.mzgwidgets import *
 from src.mzgscreen import InfoArea
 from src.mzgrooms import Maze
 
-GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 
+GAME_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
 
 class TopLev:
     """the game container. Represent the top level class, contaning the menu and the game.

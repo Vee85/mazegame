@@ -121,17 +121,22 @@ class ScreenArea(sprite.Sprite, src.PosManager):
 
 
 class InfoArea(ScreenArea):
+    """The infoarea container, to display game information to the player.
 
+    Child of ScreenArea. Includes widget holding game information
+    """
+    
     def __init__(self, screen, x, y, w, h, xm, ym):
+        """Initialization, same parameters of InfoArea"""
         super(InfoArea, self).__init__(x, y, w, h, xm, ym)
         self.screen = screen
         self.postxt = PgTextArea((810, 10), 20)
         self.postxt.show(self.screen)
 
     def updatepos(self, txt):
+        """Update info on player position in the map when player moves""" 
         self.postxt.write(txt)
         self.postxt.show(self.screen)
-
 
 
 #area where the maze is shown for gaming

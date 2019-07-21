@@ -27,12 +27,12 @@
 PgWidget -- the base class for the widget. Provides basic event handler common to all widget.
 All Widget are clickable.
 
-PgLabel -- A label widget. Holds a text.
+PgLabel -- A label widget. Holds a text on a single line, not editable.
 
 PgButton -- A button widget. Holds a text, which is highlighted when the mouse enters
 in the surface area.
 
-TopLev -- The class holding the menu, connecting the callbacks and starting the game.
+PgTextArea -- A textarea wigdet. Holds text, multiline, editable during the game
 """
 
 import sys
@@ -150,7 +150,7 @@ class PgWidget(sprite.Sprite, src.PosManager):
 
 
 class PgLabel(PgWidget):
-    """A Label, holding some text
+    """A Label, holding some text on a single line, not editable.
 
     Child of PgWidget. Creates a text surface.
     """
@@ -219,25 +219,37 @@ class PgButton(PgWidget):
 
 
 class PgTextArea(PgWidget):
-    
+    """A textarea wigdet. Holds text, multiline, editable by the game
+
+    Child of PgWidget.
+    pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
+    textheight -- height of the text in pixels
+    font -- the used font (default none)
+    """
+
     TEXTCOL = (255, 255, 255)
     
-    def __init__(self, pos, textheight, itext="", font=None, textcolor=TEXTCOL):
+    def __init__(self, pos, textheight, itext=" ", font=None, textcolor=TEXTCOL):
         """Initialization:
         
         labtext -- text of the label
         pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
         textheight -- height of the text in pixels
+        itext -- text to display at the beginning (default to space).
         font -- the used font (default none)
         textcolor -- 3-length tuple of list, a RGB color (default white)
         """
         self.text = itext
-        self.textcol = textcolor
+        self.textcolor = textcolor
         self.textheight = textheight
         self.font = font
         super(PgTextArea, self).__init__(None, self.postopix(pos))
         
     def write(self, txt):
-        self.text = txt
+        """Update the text and show it"""
+        if len(txt) == 0:
+            self.text = " "
+        else:
+            self.text = txt
         mfont = pygame.font.Font(self.font, self.sizetopix(0, self.textheight)[1])
-        self.image = mfont.render(self.text, True, self.textcol)
+        self.image = mfont.render(self.text, True, self.textcolor)
