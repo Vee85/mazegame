@@ -490,9 +490,6 @@ class GridSupport(src.PosManager):
             block.aurect.x -= xshift[xcp]
             block.aurect.y -= yshift[ycp]
 
-    def drawonsurf(self, sface, clean=False):
-        pass
-
 
 class App(tk.Tk):
     """the editor container. Represents the top level class, contaning the editor.
@@ -666,7 +663,6 @@ class App(tk.Tk):
                 pygame.draw.line(bgsurf, self.gridsupport.GRIDCOL, editorarea.postopix(0, 0, 0, y), editorarea.postopix(0, 0, 1000, y))
         if self.maze is not None:
             self.maze.draw(self.pygscreen, bgsurf)
-
 
     def pygameloop(self):
         """The editor main loop for the pygame part"""
