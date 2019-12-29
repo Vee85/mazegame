@@ -47,7 +47,7 @@ import src
 
 
 class PgWidget(sprite.Sprite, src.PosManager):
-    """Base class for all widgets do not use it directly, use its children.
+    """Base class for all widgets. Do not use this directly, use its children.
 
     Keep tracks of all its instances, and provide common methods and event submitters
     using the pygame event system.
