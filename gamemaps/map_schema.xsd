@@ -1,0 +1,144 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="https://www.w3schools.com" xmlns="https://www.w3schools.com">
+    <!-- elements -->
+    <xs:element name="block" abstract="true" type="block"/>
+    <xs:element name="maze" type="maze" use="required"/>
+
+    <!-- complex types -->
+    <xs:complexType name="marker">
+        <xs:complexContent>
+            <xs:extension base="block"/>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="player">
+        <xs:complexContent>
+            <xs:extension base="block">
+                <xs:attribute name="initialroom" type="xs:integer" use="required"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+    
+    <xs:complexType name="maze">
+        <xs:sequence>
+            <xs:element name="room" type="room" maxOccurs="unbounded"/>
+            <xs:element name="player" type="player"/>
+        </xs:sequence>
+        <xs:attribute name="totalroom" type="xs:integer" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="room">
+        <xs:sequence>
+            <xs:element ref="block" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="roomnumber" type="xs:integer" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="block">
+        <xs:attribute name="blockid" type="xs:integer" use="required"/>
+        <xs:attribute name="x" type="xs:integer" use="required"/>
+        <xs:attribute name="y" type="xs:integer" use="required"/>
+    </xs:complexType>
+
+    <!-- elements extending block, defined as element to use substitutionGroup -->
+    <xs:element name="wall" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:attribute name="width" type="xs:integer" use="required"/>
+                    <xs:attribute name="height" type="xs:integer" use="required"/>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="ladder" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:attribute name="width" type="xs:integer" use="required"/>
+                    <xs:attribute name="height" type="xs:integer" use="required"/>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="deadlyblock" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:attribute name="width" type="xs:integer" use="required"/>
+                    <xs:attribute name="height" type="xs:integer" use="required"/>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="door" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:attribute name="destination" type="xs:integer" use="required"/>
+                    <xs:attribute name="locked" type="xs:boolean" use="required"/>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="key" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:sequence>
+                        <xs:element name="keyid" type="xs:integer" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="enemybot" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:sequence>
+                        <xs:element name="marker" type="marker" maxOccurs="unbounded"/>
+                    </xs:sequence>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="windarea" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block">
+                    <xs:attribute name="width" type="xs:integer" use="required"/>
+                    <xs:attribute name="height" type="xs:integer" use="required"/>
+                    <xs:attribute ref="compass-direction" use="required"/>
+                    <xs:attribute name="strength" type="xs:integer" use="required"/>
+                    <xs:attribute name="visible" type="xs:boolean" use="required"/>
+                </xs:extension>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="checkpoint" substitutionGroup="block">
+        <xs:complexType>
+            <xs:complexContent>
+                <xs:extension base="block"/>
+            </xs:complexContent>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- attributes -->
+    <xs:attribute name="totalroom" type="xs:integer" use="required"/>
+    <xs:attribute name="roomnumber" type="xs:integer" use="required"/>
+    <xs:attribute name="compass-direction">
+        <xs:simpleType>
+            <xs:restriction base="xs:integer">
+                <xs:pattern value="[0-7]"/>
+            </xs:restriction>
+        </xs:simpleType>
+    </xs:attribute>
+</xs:schema>
