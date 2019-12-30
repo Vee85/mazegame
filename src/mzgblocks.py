@@ -53,7 +53,10 @@ Character -- The cursor controlled by the player.
 import os
 import math
 from itertools import count
+
 import numpy as np
+from lxml import etree
+
 import pygame
 from pygame import sprite
 import pygame.locals as pyloc
@@ -166,6 +169,15 @@ class Block(sprite.Sprite, src.PosManager):
         """
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
 
+    def reprxml(self):
+        """Return etree Element of the current block (used by the editor)
+
+        This is a basic tag providing attributes as defined in the schema, child classes need to override this method
+        to add other attributes if needed.
+        """
+        return etree.Element(self.__class__.__name__.lower(), blockid=str(self._id),
+                             x=str(self.aurect.x), y=str(self.aurect.y))
+
     @classmethod
     def reprlinenew(cls, idepos, *args):
         """Return default text line for a new block in map file format (used by the editor)
@@ -240,6 +252,8 @@ class Marker(Block):
         """Override method of base class. Markers do not need a text line"""
         pass
 
+    #no need to override reprxml method for marker
+
     @classmethod
     def reprlinenew(cls, *args):
         """Override method, Marker does not need a reprline"""
@@ -265,6 +279,13 @@ class Wall(Block):
         """
         super(Wall, self).__init__(bid, pos, rsize, self.BGCOL)
 
+    def reprxml(self):
+        """Override method of base class, adding extra attributes"""
+        el = super(Wall, self).reprxml()
+        el.set("width", str(self.aurect.width))
+        el.set("height", str(self.aurect.height))
+        return el
+
 
 @add_counter
 class Ladder(Block):
@@ -284,6 +305,13 @@ class Ladder(Block):
         rsize -- two-length list with width and height of the rectangle
         """
         super(Ladder, self).__init__(bid, pos, rsize, self.BGIMAGE)
+
+    def reprxml(self):
+        """Override method of base class, adding extra attributes"""
+        el = super(Ladder, self).reprxml()
+        el.set("width", str(self.aurect.width))
+        el.set("height", str(self.aurect.height))
+        return el
 
 
 @add_counter
@@ -309,6 +337,13 @@ class Deadlyblock(Block):
         """Post a deathevent into the pygame.event queue"""
         newev = pygame.event.Event(src.DEATHEVENT)
         pygame.event.post(newev)
+
+    def reprxml(self):
+        """Override method of base class, adding extra attributes"""
+        el = super(Deadlyblock, self).reprxml()
+        el.set("width", str(self.aurect.width))
+        el.set("height", str(self.aurect.height))
+        return el
 
 
 @add_counter
@@ -385,7 +420,15 @@ class Door(Block):
         """Override method of base class, adding custom informations"""
         ilock = 1 if self.locked else 0
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
-        
+
+    def reprxml(self):
+        """Override method of base class, adding extra attributes"""
+        el = super(Door, self).reprxml()
+        ilock = "true" if self.locked else "false"
+        el.set("destination", str(self.destination))
+        el.set("locked", ilock)
+        return el
+
 
 @add_counter
 class Key(Block):
@@ -448,6 +491,12 @@ class Key(Block):
         """Override method of base class, adding custom informations"""
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
 
+    def reprxml(self):
+        """Override method of base class, adding required subelements"""
+        el = super(Key, self).reprxml()
+        el.set("keyid", ";".join(map(str, self.whoopen)))
+        return el
+
 
 @add_counter
 class EnemyBot(Block):
@@ -491,6 +540,13 @@ class EnemyBot(Block):
         """Override method of base class, adding custom informations"""
         flattencoords = [i for pp in self.getmarkers() for i in [pp.aurect.x, pp.aurect.y]]
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, flattencoords))
+
+    def reprxml(self):
+        """Override method of base class, adding required subelements"""
+        el = super(EnemyBot, self).reprxml()
+        for mrk in self.getmarkers():
+            el.append(mrk.reprxml())
+        return el
 
     def getmarkers(self):
         """Return all the Markers but the one equal to enemy initial position"""
@@ -631,6 +687,17 @@ class WindArea(Block):
         ivis = 1 if self.visible else 0
         return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
 
+    def reprxml(self):
+        """Override method of base class, adding extra attributes"""
+        el = super(WindArea, self).reprxml()
+        ivis = "true" if self.visible else "false"
+        el.set("width", str(self.aurect.width))
+        el.set("height", str(self.aurect.height))
+        el.set("compass-direction", str(self._windpar[0]))
+        el.set("strength", str(self._windpar[1]))
+        el.set("visible", ivis)
+        return el
+
 
 @add_counter
 class Checkpoint(Block):
@@ -651,6 +718,8 @@ class Checkpoint(Block):
     def reprline(self):
         """Override method of base class, removing unneeded informations"""
         return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y}"
+
+    #no need to override reprxml method for checkpoint
 
     def checkp_event(self):
         """Post a checkpevent into the pygame.event queue"""
@@ -700,6 +769,11 @@ class Character(Block):
     def reprline(self):
         """Override method of base class, adding custom informations"""
         return f"IN {self.cridx} {self.aurect.x} {self.aurect.y}"
+
+    def reprxml(self):
+        el = super(Character, self).reprxml()
+        el.set("initialroom", str(self.cridx))
+        return el
 
     @classmethod
     def reprlinenew(cls, *args):

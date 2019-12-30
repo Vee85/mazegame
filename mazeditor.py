@@ -37,6 +37,8 @@ import numpy as np
 import threading
 import inspect
 
+from lxml import etree
+
 import pygame
 from pygame import sprite
 import pygame.locals as pyloc
@@ -521,7 +523,7 @@ class App(tk.Tk):
         self.loadbutton = tk.Button(self, text="Load map", command=self.loadgame)
         self.loadbutton.grid(row=0, column=2, sticky="ew", columnspan=2)
 
-        self.savebutton = tk.Button(self, text="Save map", command=self.writegame)
+        self.savebutton = tk.Button(self, text="Save map", command=self.writegame_xml)
         self.savebutton.grid(row=0, column=4, sticky="ew", columnspan=2)
 
         self.addroombutton = tk.Button(self, text="Add room", command=self.addroom)
@@ -592,6 +594,21 @@ class App(tk.Tk):
                     for block in rm.allblocks.sprites():
                         sf.write(block.reprline() + '\n')
                 sf.write(self.maze.cursor.reprline() + '\n')
+
+    def writegame_xml(self):
+        """Save the current map in a file (xml format), ready to be played"""
+        mazefile = asksaveasfilename(initialdir=GAME_DIR, title="Save file", filetypes=[("xml file",".xml")])
+        if len(mazefile) > 0:
+            xmlmaze = etree.Element('maze', totalroom=str(len(self.maze.rooms)), xmlns="map-schema")
+            for rm in self.maze.rooms:
+                xmlroom = etree.SubElement(xmlmaze, "room", roomnumber=str(rm.roompos))
+                for block in rm.allblocks.sprites():
+                    xmlroom.append(block.reprxml())
+            xmlmaze.append(self.maze.cursor.reprxml())
+
+            with open(mazefile, 'wb') as sf:
+                root = etree.ElementTree(xmlmaze)
+                root.write(sf, xml_declaration=True, pretty_print=True)
 
     def addroom(self):
         """Add a new room to the maze"""
