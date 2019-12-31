@@ -599,9 +599,9 @@ class App(tk.Tk):
         """Save the current map in a file (xml format), ready to be played"""
         mazefile = asksaveasfilename(initialdir=GAME_DIR, title="Save file", filetypes=[("xml file",".xml")])
         if len(mazefile) > 0:
-            xmlmaze = etree.Element('maze', totalroom=str(len(self.maze.rooms)), xmlns="map-schema")
+            xmlmaze = etree.Element('Maze', totalroom=str(len(self.maze.rooms)), xmlns="map-schema")
             for rm in self.maze.rooms:
-                xmlroom = etree.SubElement(xmlmaze, "room", roomnumber=str(rm.roompos))
+                xmlroom = etree.SubElement(xmlmaze, "Room", roomnumber=str(rm.roompos))
                 for block in rm.allblocks.sprites():
                     xmlroom.append(block.reprxml())
             xmlmaze.append(self.maze.cursor.reprxml())

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="map-schema" xmlns="map-schema" elementFormDefault="qualified">
     <!-- elements -->
-    <xs:element name="block" abstract="true" type="block"/>
-    <xs:element name="maze" type="maze"/>
+    <xs:element name="Block" abstract="true" type="block"/>
+    <xs:element name="Maze" type="maze"/>
 
     <!-- complex types -->
     <xs:complexType name="marker">
@@ -21,15 +21,15 @@
     
     <xs:complexType name="maze">
         <xs:sequence>
-            <xs:element name="room" type="room" maxOccurs="unbounded"/>
-            <xs:element name="character" type="character"/>
+            <xs:element name="Room" type="room" maxOccurs="unbounded"/>
+            <xs:element name="Character" type="character"/>
         </xs:sequence>
         <xs:attribute name="totalroom" type="xs:integer" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="room">
         <xs:sequence>
-            <xs:element ref="block" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="Block" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="roomnumber" type="xs:integer" use="required"/>
     </xs:complexType>
@@ -41,7 +41,7 @@
     </xs:complexType>
 
     <!-- elements extending block, defined as element to use substitutionGroup -->
-    <xs:element name="wall" substitutionGroup="block">
+    <xs:element name="Wall" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
@@ -52,7 +52,7 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="ladder" substitutionGroup="block">
+    <xs:element name="Ladder" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
@@ -63,7 +63,7 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="deadlyblock" substitutionGroup="block">
+    <xs:element name="DeadlyBlock" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
@@ -74,7 +74,7 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="door" substitutionGroup="block">
+    <xs:element name="Door" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
@@ -85,7 +85,7 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="key" substitutionGroup="block">
+    <xs:element name="Key" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
@@ -101,19 +101,19 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="enemybot" substitutionGroup="block">
+    <xs:element name="EnemyBot" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
                     <xs:sequence>
-                        <xs:element name="marker" type="marker" maxOccurs="unbounded"/>
+                        <xs:element name="Marker" type="marker" maxOccurs="unbounded"/>
                     </xs:sequence>
                 </xs:extension>
             </xs:complexContent>
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="windarea" substitutionGroup="block">
+    <xs:element name="WindArea" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block">
@@ -133,7 +133,7 @@
         </xs:complexType>
     </xs:element>
 
-    <xs:element name="checkpoint" substitutionGroup="block">
+    <xs:element name="Checkpoint" substitutionGroup="Block">
         <xs:complexType>
             <xs:complexContent>
                 <xs:extension base="block"/>

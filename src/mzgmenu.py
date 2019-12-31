@@ -118,10 +118,11 @@ class TopLev:
         self.backtomm.show(self.screen)
 
         filegames = os.listdir(GAME_DIR)
-        if len(filegames) == 0:
+        validgames = [f for f in filegames if f.endswith("xml")]
+        if len(validgames) == 0:
             raise RuntimeError("Error! No game available!")
 
-        for n, fg in enumerate(sorted(filegames)):
+        for n, fg in enumerate(sorted(validgames)):
             gamebutt = PgButton(fg, (300, 100 + (n*60)), 50)
             gamebutt.connect(src.ONCLICKEVENT, lambda dfg=fg : self.selectgame(dfg))
             gamebutt.connect(src.ENTERINGEVENT, lambda bgc=PgButton.HOVERCOL, wgg=gamebutt : wgg.switchbgcol(bgc))

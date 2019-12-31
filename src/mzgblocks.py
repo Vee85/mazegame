@@ -175,7 +175,7 @@ class Block(sprite.Sprite, src.PosManager):
         This is a basic tag providing attributes as defined in the schema, child classes need to override this method
         to add other attributes if needed.
         """
-        return etree.Element(self.__class__.__name__.lower(), blockid=str(self._id),
+        return etree.Element(self.__class__.__name__, blockid=str(self._id),
                              x=str(self.aurect.x), y=str(self.aurect.y))
 
     @classmethod
@@ -315,7 +315,7 @@ class Ladder(Block):
 
 
 @add_counter
-class Deadlyblock(Block):
+class DeadlyBlock(Block):
     """A block (any size) which should not be touched. Is game over.
 
     Children of Block. Create a death event if the player collides with it.
@@ -331,7 +331,7 @@ class Deadlyblock(Block):
         pos -- two-length list with x, y coordinates of top-left corner of the rectangle
         rsize -- two-length list with width and height of the rectangle
         """
-        super(Deadlyblock, self).__init__(bid, pos, rsize, self.BGCOL)
+        super(DeadlyBlock, self).__init__(bid, pos, rsize, self.BGCOL)
 
     def death_event(self):
         """Post a deathevent into the pygame.event queue"""
@@ -340,7 +340,7 @@ class Deadlyblock(Block):
 
     def reprxml(self):
         """Override method of base class, adding extra attributes"""
-        el = super(Deadlyblock, self).reprxml()
+        el = super(DeadlyBlock, self).reprxml()
         el.set("width", str(self.aurect.width))
         el.set("height", str(self.aurect.height))
         return el

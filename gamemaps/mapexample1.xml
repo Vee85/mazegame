@@ -1,50 +1,50 @@
 <?xml version='1.0' encoding='ASCII'?>
-<maze totalroom="2" xmlns="map-schema">
-  <room roomnumber="0">
-    <wall blockid="0" x="0" y="0" width="1000" height="50"/>
-    <wall blockid="1" x="0" y="950" width="400" height="50"/>
-    <wall blockid="2" x="500" y="950" width="500" height="50"/>
-    <ladder blockid="0" x="700" y="50" width="50" height="900"/>
-    <door blockid="0" x="300" y="800" destination="2" locked="true"/>
-    <wall blockid="3" x="1000" y="800" width="300" height="50"/>
-    <ladder blockid="1" x="1500" y="500" width="50" height="1400"/>
-    <deadlyblock blockid="0" x="1200" y="850" width="50" height="150"/>
-    <key blockid="0" x="1300" y="900" keyid="0;2"/>
-    <wall blockid="4" x="0" y="1800" width="800" height="50"/>
-    <wall blockid="5" x="850" y="1700" width="50" height="50"/>
-    <wall blockid="6" x="300" y="1550" width="400" height="50"/>
-    <wall blockid="7" x="700" y="1650" width="100" height="50"/>
-    <windarea blockid="0" x="400" y="1050" width="100" height="500" compass-direction="0" strength="3" visible="true"/>
-    <key blockid="1" x="300" y="1300" keyid="1;3"/>
-    <deadlyblock blockid="1" x="150" y="1700" width="50" height="100"/>
-    <enemybot blockid="0" x="300" y="1500">
-      <marker blockid="0" x="600" y="1500"/>
-      <marker blockid="1" x="600" y="1100"/>
-      <marker blockid="2" x="300" y="1100"/>
-    </enemybot>
-    <wall blockid="8" x="1000" y="1850" width="500" height="50"/>
-    <wall blockid="9" x="1550" y="1850" width="400" height="50"/>
-    <wall blockid="10" x="1100" y="1000" width="300" height="50"/>
-    <deadlyblock blockid="2" x="950" y="1200" width="400" height="50"/>
-    <door blockid="1" x="1800" y="1800" destination="3" locked="true"/>
-    <enemybot blockid="1" x="1000" y="1800">
-      <marker blockid="0" x="1500" y="1800"/>
-      <marker blockid="1" x="1250" y="1700"/>
-    </enemybot>
-    <checkpoint blockid="0" x="1120" y="950"/>
-  </room>
-  <room roomnumber="1">
-    <wall blockid="11" x="100" y="900" width="1800" height="50"/>
-    <wall blockid="12" x="1100" y="550" width="50" height="350"/>
-    <wall blockid="13" x="1150" y="550" width="700" height="50"/>
-    <wall blockid="14" x="1850" y="550" width="50" height="350"/>
-    <wall blockid="15" x="350" y="300" width="600" height="50"/>
-    <ladder blockid="2" x="300" y="300" width="50" height="600"/>
-    <door blockid="2" x="850" y="850" destination="0" locked="true"/>
-    <door blockid="3" x="1700" y="850" destination="1" locked="true"/>
-    <door blockid="4" x="1400" y="800" destination="-1" locked="true"/>
-    <key blockid="2" x="1500" y="500" keyid="4"/>
-    <checkpoint blockid="2" x="1760" y="500"/>
-  </room>
-  <character blockid="0" x="100" y="1600" initialroom="0"/>
-</maze>
+<Maze totalroom="2" xmlns="map-schema">
+  <Room roomnumber="0">
+    <Wall blockid="0" x="0" y="0" width="1000" height="50"/>
+    <Wall blockid="1" x="0" y="950" width="400" height="50"/>
+    <Wall blockid="2" x="500" y="950" width="500" height="50"/>
+    <Ladder blockid="0" x="700" y="50" width="50" height="900"/>
+    <Door blockid="0" x="300" y="800" destination="2" locked="true"/>
+    <Wall blockid="3" x="1000" y="800" width="300" height="50"/>
+    <Ladder blockid="1" x="1500" y="500" width="50" height="1400"/>
+    <DeadlyBlock blockid="0" x="1200" y="850" width="50" height="150"/>
+    <Key blockid="0" x="1300" y="900" keyid="0;2"/>
+    <Wall blockid="4" x="0" y="1800" width="800" height="50"/>
+    <Wall blockid="5" x="850" y="1700" width="50" height="50"/>
+    <Wall blockid="6" x="300" y="1550" width="400" height="50"/>
+    <Wall blockid="7" x="700" y="1650" width="100" height="50"/>
+    <WindArea blockid="0" x="400" y="1050" width="100" height="500" compass-direction="0" strength="3" visible="true"/>
+    <Key blockid="1" x="300" y="1300" keyid="1;3"/>
+    <DeadlyBlock blockid="1" x="150" y="1700" width="50" height="100"/>
+    <EnemyBot blockid="0" x="300" y="1500">
+      <Marker blockid="0" x="600" y="1500"/>
+      <Marker blockid="1" x="600" y="1100"/>
+      <Marker blockid="2" x="300" y="1100"/>
+    </EnemyBot>
+    <Wall blockid="8" x="1000" y="1850" width="500" height="50"/>
+    <Wall blockid="9" x="1550" y="1850" width="400" height="50"/>
+    <Wall blockid="10" x="1100" y="1000" width="300" height="50"/>
+    <DeadlyBlock blockid="2" x="950" y="1200" width="400" height="50"/>
+    <Door blockid="1" x="1800" y="1800" destination="3" locked="true"/>
+    <EnemyBot blockid="1" x="1000" y="1800">
+      <Marker blockid="0" x="1500" y="1800"/>
+      <Marker blockid="1" x="1250" y="1700"/>
+    </EnemyBot>
+    <Checkpoint blockid="0" x="1120" y="950"/>
+  </Room>
+  <Room roomnumber="1">
+    <Wall blockid="11" x="100" y="900" width="1800" height="50"/>
+    <Wall blockid="12" x="1100" y="550" width="50" height="350"/>
+    <Wall blockid="13" x="1150" y="550" width="700" height="50"/>
+    <Wall blockid="14" x="1850" y="550" width="50" height="350"/>
+    <Wall blockid="15" x="350" y="300" width="600" height="50"/>
+    <Ladder blockid="2" x="300" y="300" width="50" height="600"/>
+    <Door blockid="2" x="850" y="850" destination="0" locked="true"/>
+    <Door blockid="3" x="1700" y="850" destination="1" locked="true"/>
+    <Door blockid="4" x="1400" y="800" destination="-1" locked="true"/>
+    <Key blockid="2" x="1500" y="500" keyid="4"/>
+    <Checkpoint blockid="2" x="1760" y="500"/>
+  </Room>
+  <Character blockid="0" x="100" y="1600" initialroom="0"/>
+</Maze>
