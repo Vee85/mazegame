@@ -37,6 +37,9 @@ import unittest
 import sys
 import os
 import readline
+
+from lxml.etree import tostring as etree_tostring
+
 import pygame
 from pygame import sprite
 from pygame.locals import *
@@ -86,7 +89,7 @@ class TestMaze(unittest.TestCase):
                 albl.append(self.game.cursor)
             for i, bl in enumerate(albl[:-1]):
                 for obl in albl[i+1:]:
-                    txtmess = f"overlap!\n{bl.reprline()}\n{obl.reprline()}"
+                    txtmess = f"overlap!\n{etree_tostring(bl.reprxml())}\n{etree_tostring(obl.reprxml())}"
                     self.assertFalse(bl.aurect.colliderect(obl.aurect), txtmess)
     
     def test_doors(self):

@@ -53,6 +53,7 @@ Character -- The cursor controlled by the player.
 import os
 import math
 from itertools import count
+from operator import itemgetter
 
 import numpy as np
 from lxml import etree
@@ -79,8 +80,8 @@ class Block(sprite.Sprite, src.PosManager):
     The methods are:
     fillimage -- fill the image with the bg color or mosaic tile
     update -- update pygame.Rect with the current position / size
-    reprline -- return text line of the block in map file format (used to create a map by the editor)
-    reprlinenew -- classmethod, used by editor to write lines of new blocks to be saved in the map file
+    reprxml -- return text line of the block in map file format (used to create a map by the editor)
+    reprxmlnew -- classmethod, used by editor to write lines of new blocks to be saved in the map file
     collidinggroup -- return other sprites of a group colliding with this sprite
     It has also the following property:
     risze -- get or set the size of the block, if resizable
@@ -161,14 +162,6 @@ class Block(sprite.Sprite, src.PosManager):
             self.image = pygame.transform.scale(self.image, nwpxsize)
             self.fillimage()
 
-    def reprline(self):
-        """Return text line of the block in map file format (used by the editor)
-
-        This is a basic format holding a label and the PyRect values x, y, width, height.
-        Is fine for basic blocks, more complex blocks need to override it with custom representation lines.
-        """
-        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.aurect.width} {self.aurect.height}"
-
     def reprxml(self):
         """Return etree Element of the current block (used by the editor)
 
@@ -179,24 +172,29 @@ class Block(sprite.Sprite, src.PosManager):
                              x=str(self.aurect.x), y=str(self.aurect.y))
 
     @classmethod
-    def reprlinenew(cls, idepos, *args):
-        """Return default text line for a new block in map file format (used by the editor)
+    def reprxmlnew(cls, **kwargs):
+        """Return default xml tag for a new block in map file format (used by the editor)
 
         Classmethod. idepos is a 3-length list containing the id and x y coordinates
-        *args are positional arguments, to be added to the list, and vary from block type to block type.
-        Defaults *args is empty.
-        Block types in need of a custom line override this method and may require a different
-        set of positional arguments.
+        *kwargs is a dictionary containing the attributes of the xml Element tag, and vary from block type
+        to block type. Mandatory attributes must be blockid, x, y.
+        Block types in need of a tag with nested tags need to override this method.
         """
         if cls.__name__ == "Block":
-            raise RuntimeError("reprlinenew classmethod should not be called by a Block instance!")
+            raise RuntimeError("reprxmlnew classmethod should not be called by a Block instance!")
 
-        lab = f"{cls.label} " + " ".join(map(str, idepos))
-        addpar = " ".join(map(str, args))
-        if hasattr(cls, "rectsize"):
-            return lab + " " + addpar
-        else:
-            return lab + " 100 50 " + addpar
+        try:
+            out = itemgetter('blockid', 'x', 'y')(kwargs)
+        except KeyError as e:
+            raise RuntimeError("Missing parameter(s) given to reprxlmnew!\n" + str(e))
+
+        res = etree.Element(cls.__name__, **kwargs)
+        if not hasattr(cls, "rectsize"):
+            #assigning initial width and height
+            res.set("width", "100")
+            res.set("height", "50")
+
+        return res
 
     def collidinggroup(self, group):
         """Return other sprites of a group colliding with this sprite"""
@@ -248,17 +246,8 @@ class Marker(Block):
         if not src.ISGAME:
             self.blitinfo(self.ref, self._id)
 
-    def reprline(self):
-        """Override method of base class. Markers do not need a text line"""
-        pass
-
     #no need to override reprxml method for marker
 
-    @classmethod
-    def reprlinenew(cls, *args):
-        """Override method, Marker does not need a reprline"""
-        pass
-        
 
 @add_counter
 class Wall(Block):
@@ -416,11 +405,6 @@ class Door(Block):
         newev = pygame.event.Event(src.ENTERDOOREVENT, door_id=self._id, destination=self.destination)
         pygame.event.post(newev)
 
-    def reprline(self):
-        """Override method of base class, adding custom informations"""
-        ilock = 1 if self.locked else 0
-        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} {self.destination} {ilock}"
-
     def reprxml(self):
         """Override method of base class, adding extra attributes"""
         el = super(Door, self).reprxml()
@@ -487,10 +471,6 @@ class Key(Block):
         newev = pygame.event.Event(src.TAKEKEYEVENT, key_id=self._id, openeddoor=self.whoopen)
         pygame.event.post(newev)
 
-    def reprline(self):
-        """Override method of base class, adding custom informations"""
-        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, self.whoopen))
-
     def reprxml(self):
         """Override method of base class, adding required subelements"""
         el = super(Key, self).reprxml()
@@ -535,11 +515,6 @@ class EnemyBot(Block):
         super(EnemyBot, self).fillimage()
         if not src.ISGAME:
             self.blitinfo(self._id)
-        
-    def reprline(self):
-        """Override method of base class, adding custom informations"""
-        flattencoords = [i for pp in self.getmarkers() for i in [pp.aurect.x, pp.aurect.y]]
-        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y} " + " ".join(map(str, flattencoords))
 
     def reprxml(self):
         """Override method of base class, adding required subelements"""
@@ -547,6 +522,19 @@ class EnemyBot(Block):
         for mrk in self.getmarkers():
             el.append(mrk.reprxml())
         return el
+
+    @classmethod
+    def reprxmlnew(cls, **kwargs):
+        """Return xml tag for a new EnemyBot"""
+        fund_kwargs = {k: kwargs[k] for k in ("blockid", "x", "y")}
+        res = super(EnemyBot, cls).reprxmlnew(**fund_kwargs)
+        mrkx = int(kwargs["x"])
+        mrky = kwargs["y"]
+        for i in range(1, kwargs["nummarker"]+1):
+            mrid = next(Marker._idcounter)
+            mrkattr = {"blockid":str(mrid), "x":str(mrkx + i*50), "y":mrky}
+            res.append(Marker.reprxmlnew(**mrkattr))
+        return res
 
     def getmarkers(self):
         """Return all the Markers but the one equal to enemy initial position"""
@@ -681,12 +669,6 @@ class WindArea(Block):
         newev = pygame.event.Event(src.EXITINGEVENT, wind=np.array([0, 0]))
         pygame.event.post(newev)
 
-    def reprline(self):
-        """Override method of base class, adding custom information"""
-        baseline = super(WindArea, self).reprline()
-        ivis = 1 if self.visible else 0
-        return baseline + f" {self._windpar[0]} {self._windpar[1]} {ivis}"
-
     def reprxml(self):
         """Override method of base class, adding extra attributes"""
         el = super(WindArea, self).reprxml()
@@ -714,11 +696,7 @@ class Checkpoint(Block):
     
     def __init__(self, bid, pos):
         super(Checkpoint, self).__init__(bid, pos, self.rectsize, self.IMCP)
-        
-    def reprline(self):
-        """Override method of base class, removing unneeded informations"""
-        return f"  {self.label} {self._id} {self.aurect.x} {self.aurect.y}"
-
+ 
     #no need to override reprxml method for checkpoint
 
     def checkp_event(self):
@@ -766,17 +744,13 @@ class Character(Block):
         self.ax = 0
         self.ay = 0
 
-    def reprline(self):
-        """Override method of base class, adding custom informations"""
-        return f"IN {self.cridx} {self.aurect.x} {self.aurect.y}"
-
     def reprxml(self):
         el = super(Character, self).reprxml()
         el.set("initialroom", str(self.cridx))
         return el
 
     @classmethod
-    def reprlinenew(cls, *args):
+    def reprxmlnew(cls, **kwargs):
         """Override method, Character must not call this"""
         raise NotImplementedError("Character do not need to be created by the editor")
 
