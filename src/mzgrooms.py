@@ -38,6 +38,8 @@ import sys
 import os
 import re
 import io
+
+from lxml import etree
 import numpy as np
 import pygame
 
@@ -46,6 +48,11 @@ from src.mzgscreen import mazearea, editorarea
 from src import ISGAME
 
 SAVE_DIR = os.path.join(src.MAIN_DIR, '../saves')
+MAP_DIR = os.path.join(src.MAIN_DIR, '../gamemaps')
+
+
+class NotValidXML(Exception):
+    pass
 
 
 class Room:
@@ -79,50 +86,56 @@ class Room:
         self.checkpoints = sprite.Group()
         self.screens = np.array([1, 1])
 
-    def addelem(self, lstpar):
-        """Parse a text line (lstpar argument) to create the corresponding block"""
-        blid = int(lstpar[1])
-        bpos = list(map(int, lstpar[2:4]))
-        if lstpar[0] in ['W', 'L', 'T', 'F']:
-            bsize = list(map(int, lstpar[4:6]))
-            if lstpar[0] == 'W':
+    def addelem(self, xmltag):
+        """Parse a xml tag to create the corresponding block"""
+        cname = re.sub("{.*}", "", xmltag.tag)
+        blid = int(xmltag.get("blockid"))
+        bpos = [int(xmltag.get("x")), int(xmltag.get("y"))]
+        if cname in ['Wall', 'Ladder', 'DeadlyBlock', 'WindArea']:
+            bsize = [int(xmltag.get("width")), int(xmltag.get("height"))]
+            if cname == 'Wall':
                 crblock = Wall(blid, bpos, bsize)
                 self.walls.add(crblock)
-            elif lstpar[0] == 'L':
+            elif cname == 'Ladder':
                 crblock = Ladder(blid, bpos, bsize)
                 self.ladders.add(crblock)
-            elif lstpar[0] == 'T':
-                crblock = Deadlyblock(blid, bpos, bsize)
+            elif cname == 'DeadlyBlock':
+                crblock = DeadlyBlock(blid, bpos, bsize)
                 self.deathblocks.add(crblock)
-            elif lstpar[0] == 'F':
-                frc = list(map(int, lstpar[6:8]))
-                crblock = WindArea(blid, bpos, bsize, frc, bool(int(lstpar[8])))
+            elif cname == 'WindArea':
+                frc = [int(xmltag.get("compass-direction")), int(xmltag.get("strength"))]
+                vis = True if xmltag.get("visible") == "true" else False
+                crblock = WindArea(blid, bpos, bsize, frc, vis)
                 self.windareas.add(crblock)
-        elif lstpar[0] == 'D':
+        elif cname == 'Door':
             bsize = Door.rectsize
-            crblock = Door(blid, bpos, int(lstpar[4]), bool(int(lstpar[5])))
+            lck = True if xmltag.get("locked") == "true" else False
+            crblock = Door(blid, bpos, int(xmltag.get("destination")), lck)
             self.doors.add(crblock)
-        elif lstpar[0] == 'K':
-            dooridx = list(map(int, lstpar[4:6]))
+        elif cname == 'Key':
+            dooridx = list(map(int, xmltag.get("keyid").split(";")))
             bsize = Key.rectsize
             crblock = Key(blid, bpos, dooridx)
             self.keys.add(crblock)
-        elif lstpar[0] == 'B':
-            coordinates = list(map(int, lstpar[4:]))
+        elif cname == 'EnemyBot':
+            coordinates = []
+            for mrk in xmltag:
+                coordinates.extend([int(mrk.get("x")), int(mrk.get("y"))])
             bsize = EnemyBot.rectsize
             crblock = EnemyBot(blid, bpos, coordinates)
             self.bots.add(crblock)
-        elif lstpar[0] == 'C':
+        elif cname == 'Checkpoint':
             bsize = Checkpoint.rectsize
             crblock = Checkpoint(blid, bpos)
             self.checkpoints.add(crblock)
         else:
-            raise RuntimeError("error during room construction: '{}'".format(' '.join(lstpar)))
+            raise RuntimeError("error during room construction: unknown tag block '{:s}'".format(cname))
 
         self.allblocks.add(crblock)
+
         if self.isgame:
             next(crblock._idcounter)
-        
+
         #adjusting screens if needed
         maxx = ((bpos[0] + bsize[0]) // 1000)+1
         maxy = ((bpos[1] + bsize[1]) // 1000)+1
@@ -222,6 +235,7 @@ class Maze:
         self.isgame = isgame
         self.filename = fn
         self.chpfilename = os.path.join(SAVE_DIR, "checkpoint")
+        self.iarea = None
         self.rooms = None
         self.cursor = None
         self._croom = None
@@ -272,43 +286,43 @@ class Maze:
         Key.initcounter()
         EnemyBot.initcounter()
         Marker.initcounter()
-    
-    def maploader(self):
-        """Load a map, parsing the textfile or creating the default (almost empty) map"""
-        if self.filename is not None:
-            streamer = open(self.filename)
-        else:
-            streamer = io.StringIO("NR 1\nR 0\nIN 0 50 50\n")
-        
-        with streamer as fob:
-            #searching the first valid line: map dimension
-            for fl in fob:
-                sfl = fl.strip()
-                if len(sfl) > 0:
-                    if sfl[0] != '#':
-                        numroomline = sfl.split()
-                        if numroomline[0] == 'NR' and len(numroomline) == 2:
-                            self.rooms = np.empty(shape=int(numroomline[1]), dtype=Room)
-                            break
-                        else:
-                            raise RuntimeError(f"error in map construction: {fl}")
 
-            #reading the rest of the file, building the rooms
-            for fl in fob:
-                sfl = fl.strip()
-                if len(sfl) > 0:
-                    if sfl[0] != '#':
-                        lline = re.split('\s+', sfl)
-                        if lline[0] == 'R' and len(lline) == 2:
-                            ridx = int(lline[1])
-                            self.rooms[ridx] = Room(ridx, self.isgame)
-                        elif lline[0] == 'IN':
-                            self.firstroom = int(lline[1])
-                            curspos = list(map(int, lline[2:]))
-                        elif len(lline) >= 4:
-                            self.rooms[ridx].addelem(lline)
-                        else:
-                            raise RuntimeError(f"error in map construction: {fl}")
+    def maploader(self):
+        """Load a map, parsing the xml file or creating the default (almost empty) map"""
+        if self.filename is not None:
+            maptree = etree.parse(self.filename)
+        else:
+            root = etree.XML("""
+            <Maze totalroom="1" xmlns="map-schema">
+                <Room roomnumber="0"/>
+                <Character blockid="0" x="50" y="50" initialroom="0"/>
+            </Maze>
+            """
+            )
+            maptree = etree.ElementTree(root)
+        namespace = "map-schema"
+
+        #validating xml against the schema
+        schema_doc = etree.parse(os.path.join(MAP_DIR, "map_schema.xsd"))
+        schema = etree.XMLSchema(schema_doc)
+        if not schema.validate(maptree):
+            raise NotValidXML("Error, map file not valid against the schema")
+        
+        elmaze = maptree.getroot()
+
+        #getting number of rooms
+        self.rooms = np.empty(shape=int(elmaze.get("totalroom")), dtype=Room)
+
+        #building the rooms
+        for el in elmaze:
+            if el.tag == f"{{{namespace}}}Room":
+                ridx = int(el.get("roomnumber"))
+                self.rooms[ridx] = Room(ridx, self.isgame)
+                for bel in el:
+                    self.rooms[ridx].addelem(bel)
+            elif el.tag == f"{{{namespace}}}Character":
+                self.firstroom = int(el.get("initialroom"))
+                curspos = [int(el.get("x")), int(el.get("y"))]
 
         self.initcursor(curspos)
         self.croom = self.rooms[self.firstroom]
@@ -330,6 +344,7 @@ class Maze:
         self.croom.update(self.cpp[0], self.cpp[1])
         self.cursor.update(self.cpp[0], self.cpp[1])
         self.croom.draw(screen, self.cpp, self.BGCOL)
+        self.iarea.updatepos(str(self.cpp))
 
     def crossdoor(self, doorid, destination):
         """Enter in a door: player position is reset to the destination door.

@@ -37,6 +37,8 @@ import numpy as np
 import threading
 import inspect
 
+from lxml import etree
+
 import pygame
 from pygame import sprite
 import pygame.locals as pyloc
@@ -62,7 +64,7 @@ DOUBLECLICKTIME = 300
 ACT_REFRESH = 0 #no keyword
 ACT_SCROLL = 1  #need keywords xoff, yoff
 ACT_DELETEBLOCK = 2  #need keyword todelete
-ACT_ADDBLOCK = 3 #need keyword line
+ACT_ADDBLOCK = 3 #need keyword tag
 ACT_MOVECURSOR = 4 #no keyword
 ACT_STICKGRID = 5 #need keywords block, which
 
@@ -169,7 +171,7 @@ class Blockinfo(tk.Frame):
         super(Blockinfo, self).__init__(parent)
 
     def getinfo(self):
-        """To be overriden: return a list of the extra parameters inputted by the user in the dialogs"""
+        """To be overriden: return a dictionary with extra attributes inputted by the user in the dialogs"""
         raise NotImplementedError
 
 
@@ -194,8 +196,9 @@ class Doorinfo(Blockinfo):
         self.islocked.grid(row=1, column=1)
 
     def getinfo(self):
-        """Overriding method: return a list of the extra parameters"""
-        return [int(self.doordest.get()), self.lockvar.get()]
+        """Overriding method: return a dictiorary of the extra attributes"""
+        ilk = "true" if self.lockvar.get() else "false"
+        return {"destination":self.doordest.get(), "locked":ilk}
 
 
 class Keyinfo(Blockinfo):
@@ -213,13 +216,12 @@ class Keyinfo(Blockinfo):
         self.opened.grid(row=1, column=0)
 
     def getinfo(self):
-        """Overriding method: return a list of the extra parameters"""
-        try:
-            res = list(map(int, self.opened.get().strip().split()))
-        except ValueError as err:
-            print("Error in setting ids of doors to be opened by the key: please insert integers!\n" + str(err))
-            res = None
-        return res
+        """Overriding method: return a dictiorary of the extra attributes"""
+        kds= re.sub("\s+", ";", self.opened.get())
+        if not re.match("^\d+(;\d+)*$", kds):
+            print("Error in setting ids of doors to be opened by the key: please insert integers separated by spaces!")
+            return None
+        return {"keyid":kds}
 
 
 class EnemyBotinfo(Blockinfo):
@@ -239,10 +241,8 @@ class EnemyBotinfo(Blockinfo):
         self.nummarker.grid(row=1, column=0)
 
     def getinfo(self):
-        """Overriding method: return a list of the extra parameters"""
-        ux, uy = editorarea.pixtopos(self.cpp[0], self.cpp[1], editorarea.corrpix_comp(self.blockpos))
-        ll = [(ux + (i*50), uy) for i in range(1, int(self.nummarker.get())+1)]
-        return [el for sl in ll for el in sl]
+        """Overriding method: return a dictiorary of the extra attributes"""
+        return {"nummarker":int(self.nummarker.get())}
 
 
 class WindAreainfo(Blockinfo):
@@ -279,7 +279,8 @@ class WindAreainfo(Blockinfo):
 
     def getinfo(self):
         """Overriding method: return a list of the extra parameters"""
-        return [self.windvalues[self.winddir.get()], self.windforces[self.windstre.get()], self.visvar.get()]
+        vis = "true" if self.visvar.get() else "false"
+        return {"compass-direction":str(self.winddir.get()), "strength":str(self.windstre.get()), "visible":vis}
 
 
 class NewBlockDialog(tk.Toplevel):
@@ -291,7 +292,7 @@ class NewBlockDialog(tk.Toplevel):
     """
 
     def _recoverblocks(obj):
-        """Recover the block types from the module using reflection"""
+        """Filter function to recover block types only from the module mzgblocks using reflection"""
         return inspect.isclass(obj) and issubclass(obj, Block) and obj.__name__ not in ['Block', 'Character', 'Marker']
 
     allblocks = list(name for name, obj in inspect.getmembers(src.mzgblocks, _recoverblocks))
@@ -339,25 +340,28 @@ class NewBlockDialog(tk.Toplevel):
             blocktype = self.blocktypes.get()
             if blocktype in self.allblocks:
                 nid = next(getattr(src.mzgblocks, blocktype)._idcounter)
-                idepos = [nid] + editorarea.pixtopos(self.cpp[0], self.cpp[1], *editorarea.corrpix_comp(self.blockpos))
-                addparam = []
+                idepos = editorarea.pixtopos(self.cpp[0], self.cpp[1], *editorarea.corrpix_comp(self.blockpos))
+                attributes = {"blockid":str(nid), "x":str(idepos[0]), "y":str(idepos[1])}
                 if self.custompanel is not None:
                     extrapar = self.custompanel.getinfo()
                     if extrapar is None:
                         return
-                    addparam.extend(extrapar)
-                newline = getattr(src.mzgblocks, blocktype).reprlinenew(idepos, *addparam)
-                newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
+                    attributes.update(extrapar)
+                newtag = getattr(src.mzgblocks, blocktype).reprxmlnew(**attributes)
+                newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, tag=newtag)
                 pygame.event.post(newev)
             elif blocktype == 'Door Set':
                 bltp = ['Door', 'Door', 'Key']
                 nids = [next(src.mzgblocks.Door._idcounter), next(src.mzgblocks.Door._idcounter), next(src.mzgblocks.Key._idcounter)]
-                params = [[[nids[0]] + list(self.blockpos), [nids[1], 1]],
-                          [[nids[1]] + [self.blockpos[0]+50, self.blockpos[1]], [nids[0], 1]],
-                          [[nids[2]] + [self.blockpos[0]+100, self.blockpos[1]], nids[0:2]]]
+                params = [{"blockid":str(nids[0]), "x":str(self.blockpos[0]), "y":str(self.blockpos[1]),
+                                "destination":str(nids[1]), "locked":"true"},
+                          {"blockid":str(nids[1]), "x":str(self.blockpos[0]+50), "y":str(self.blockpos[1]),
+                                "destination":str(nids[0]), "locked":"true"},
+                          {"blockid":str(nids[2]), "x":str(self.blockpos[0]+100), "y":str(self.blockpos[1]),
+                                "keyid":";".join(map(str, nids))}]
                 for btp, prm in zip(bltp, params):
-                    newline = getattr(src.mzgblocks, btp).reprlinenew(prm[0], *prm[1])
-                    newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=newline)
+                    newtag = getattr(src.mzgblocks, btp).reprxmlnew(**prm)
+                    newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, tag=newtag)
                     pygame.event.post(newev)
 
         self.destroy()
@@ -397,12 +401,12 @@ class BlockActions(tk.Toplevel):
 
     def act_move(self):
         """Move select block to another room"""
-        copyline = self.refblock.reprline()
-        if copyline.startswith('IN'):
+        copyxml = self.refblock.reprxml()
+        if copyxml.tag == "Character":
             newev = pygame.event.Event(pyloc.USEREVENT, action=ACT_MOVECURSOR)
             pygame.event.post(newev)
         else:
-            addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, line=copyline)
+            addev = pygame.event.Event(pyloc.USEREVENT, action=ACT_ADDBLOCK, tag=copyxml)
             delev = pygame.event.Event(pyloc.USEREVENT, action=ACT_DELETEBLOCK, todelete=self.refblock)
             pygame.event.post(addev)
             pygame.event.post(delev)
@@ -489,9 +493,6 @@ class GridSupport(src.PosManager):
         else:
             block.aurect.x -= xshift[xcp]
             block.aurect.y -= yshift[ycp]
-
-    def drawonsurf(self, sface, clean=False):
-        pass
 
 
 class App(tk.Tk):
@@ -585,16 +586,19 @@ class App(tk.Tk):
             pygame.event.post(newev)
 
     def writegame(self):
-        """Save the current map in a file, ready to be played"""
-        mazefile = asksaveasfilename(initialdir=GAME_DIR, title="Save file", filetypes=[("all files","*")])
+        """Save the current map in a file (xml format), ready to be played"""
+        mazefile = asksaveasfilename(initialdir=GAME_DIR, title="Save file", filetypes=[("xml file",".xml")])
         if len(mazefile) > 0:
-            with open(mazefile, 'w') as sf:
-                sf.write(f"NR {str(len(self.maze.rooms))}\n")
-                for rm in self.maze.rooms:
-                    sf.write(f"R {rm.roompos}\n")
-                    for block in rm.allblocks.sprites():
-                        sf.write(block.reprline() + '\n')
-                sf.write(self.maze.cursor.reprline() + '\n')
+            xmlmaze = etree.Element('Maze', totalroom=str(len(self.maze.rooms)), xmlns="map-schema")
+            for rm in self.maze.rooms:
+                xmlroom = etree.SubElement(xmlmaze, "Room", roomnumber=str(rm.roompos))
+                for block in rm.allblocks.sprites():
+                    xmlroom.append(block.reprxml())
+            xmlmaze.append(self.maze.cursor.reprxml())
+
+            with open(mazefile, 'wb') as sf:
+                root = etree.ElementTree(xmlmaze)
+                root.write(sf, xml_declaration=True, pretty_print=True)
 
     def addroom(self):
         """Add a new room to the maze"""
@@ -667,7 +671,6 @@ class App(tk.Tk):
         if self.maze is not None:
             self.maze.draw(self.pygscreen, bgsurf)
 
-
     def pygameloop(self):
         """The editor main loop for the pygame part"""
         dbclock = pygame.time.Clock()
@@ -684,14 +687,12 @@ class App(tk.Tk):
                             self.maze.cpp = fpos
                             self.updateinfoarea()
                     elif event.action == ACT_ADDBLOCK:
-                        for bln in event.line.split('\n'):
-                            lline = re.split('\s+', bln.strip())
-                            newblock = self.maze.croom.addelem(lline)
-                            if self.gridflag.get():
-                                stickevpos = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=0, block=newblock)
-                                pygame.event.post(stickevpos)
-                                stickevsiz = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=1, block=newblock)
-                                pygame.event.post(stickevsiz)
+                        newblock = self.maze.croom.addelem(event.tag)
+                        if self.gridflag.get():
+                            stickevpos = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=0, block=newblock)
+                            pygame.event.post(stickevpos)
+                            stickevsiz = pygame.event.Event(pyloc.USEREVENT, action=ACT_STICKGRID, which=1, block=newblock)
+                            pygame.event.post(stickevsiz)
                     elif event.action == ACT_DELETEBLOCK:
                         event.todelete.kill()
                     elif event.action == ACT_MOVECURSOR:
