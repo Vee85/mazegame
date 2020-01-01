@@ -3,7 +3,7 @@ Simple platform game written in python. Choose a map, explore a series of rooms 
 The game is _work in progress._
 
 ## Installation
-The game require _python3.6_ or later, _pygame_ and _numpy_. _tkinter_ is used by the editor. Simply copy the files preserving the structure. Source files are in the _src_ directory, images are in the _images_ directory and maps are in the _gamemaps_ directory.
+The game require _python3.6_ or later, _numpy_, _lxml_ and _pygame_. _tkinter_ is used by the editor. Simply copy the files preserving the structure. Source files are in the _src_ directory, images are in the _images_ directory and maps are in the _gamemaps_ directory.
 
 **mazegame.py** is the main script. Run it to play the game.
 

@@ -438,10 +438,11 @@ class Maze:
                 cnt = self.croom.area.origin_area(self.cpp)
                 self.scrollscreen(screen)
 
-            #deleting moving elements (to animate the movement)
+            #deleting moving elements (to animate the movement) if inside ScreenArea
             screen.fill(self.BGCOL, self.croom.area.corrpix_blit(self.cursor.rect))
             for bot in self.croom.bots.sprites():
-                screen.fill(self.BGCOL, self.croom.area.corrpix_blit(bot.rect))
+                if cnt.colliderect(bot.aurect):
+                    screen.fill(self.BGCOL, self.croom.area.corrpix_blit(bot.rect))
 
             #redrawing blocks where player or bots have passed
             for hob in self.croom.hoveringsprites():
@@ -499,7 +500,7 @@ class Maze:
             if dying:
                 continue
 
-            #handling movement drawing - bots moved but drawn only if inside ScreenArea.
+            #handling movement drawing - bots moved but drawn only if inside ScreenArea
             self.cursor.movecharacter(self.croom.walls, self.croom.ladders)
             screen.blit(self.cursor.image, self.croom.area.corrpix_blit(self.cursor.rect))
             for bot in self.croom.bots.sprites():
