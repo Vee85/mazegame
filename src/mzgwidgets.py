@@ -46,36 +46,43 @@ import pygame.locals as pyloc
 import src
 
 
-class PgWidget(sprite.Sprite, src.PosManager):
+class PgWidget(sprite.Sprite):
     """Base class for all widgets. Do not use this directly, use its children.
 
-    Keep tracks of all its instances, and provide common methods and event submitters
+    It keeps track of all its instances, and provide common methods and event submitters
     using the pygame event system.
     enterevent -- emitted when the mouse enters the widget surface
     exitevent -- emitted when the mouse leaves the widget surface
     onclickevent -- emitted when a mouse button is clicked and the mouse is inside the widget surface
     connect -- method to connect a callback function to an event
-    Most of its methods require a sscr argument: the pygame.display surface
     """
     
     _idcounter = count(0)
     allwidgets = sprite.Group()
-    
-    def __init__(self, surf, pos):
+
+    def __init__(self, area, surf, pos):
         """Initialization:
-        
-        surf -- a pygame.Surface, shown by the widget
-        pos -- 2-length container, x y coordinates of the top-left corner of the surface 
+
+        area -- ScreenArea instance
+        surf -- pygame.Surface, shown by the widget
+        pos -- 2-length container, x y coordinates of the top-left corner of the surface in the ScreenArea frame 
         """
         super(PgWidget, self).__init__()
         self._id = next(self._idcounter)
         self.update = False
+
+        if isinstance(area, src.mzgscreen.ScreenArea):
+            self.area = area
+        else:
+            raise ValueError("Wrong initialization area for Widget!")
+
         if isinstance(surf, pygame.Surface):
             self.image = surf
         elif surf is None:
             self.image = pygame.Surface((10, 10))
         else:
-            raise RuntimeError("Wrong initialization parameter.")
+            raise ValueError("Wrong initialization surface for Widget!")
+
         self.pos = pos
         self.rect = self.image.get_rect().move(self.pos)
         self._shown = False
@@ -95,28 +102,29 @@ class PgWidget(sprite.Sprite, src.PosManager):
         else:
             return PgWidget.allwidgets.sprites()
 
-    def show(self, sscr, loadscreen=False):
+    def show(self, loadscreen=False):
         """Blit the widget.
         
         loadscreen -- boolean, useful for child classes who override this method
         """
-        sscr.blit(self.image, self.pos)
+        self.area.image.blit(self.image, self.pos)
         self._shown = True
 
-    def wupdate(self, sscr):
+    def wupdate(self, scrr):
         """Update the widget"""
         if self.update:
-            self.show(sscr, False)
+            self.show(False)
             self.update = False
+            scrr.blit(self.area.image, self.area.origin_area(np.array([0, 0])).get_rect())
 
     @staticmethod
-    def hideall(sscr, bgc):
+    def hideall(ssrc, bgc):
         """Hide a screen, filling it with the bgc color
 
+        ssrc -- ScreenArea instance
         bgc -- 3-length tuple of list, a RGB color
         """
-        #ssrc must be the screen surface
-        sscr.fill(bgc)
+        ssrc.image.fill(bgc)
         for ww in PgWidget.widget_list():
             ww._shown = False
     
@@ -157,20 +165,21 @@ class PgLabel(PgWidget):
 
     TEXTCOL = (255, 255, 255)
     
-    def __init__(self, labtext, pos, textheight, font=None, textcolor=TEXTCOL):
+    def __init__(self, area, labtext, pos, textheight, font=None, textcolor=TEXTCOL):
         """Initialization:
-        
+
+        area -- ScreenArea instance
         labtext -- text of the label
-        pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
+        pos -- 2-length container, x y coordinates of the top-left corner of the surface in the ScreenArea frame 
         textheight -- height of the text in pixels
         font -- the used font (default none)
         textcolor -- 3-length tuple of list, a RGB color (default white)
         """
         self.text = labtext
         self.font = font
-        mfont = pygame.font.Font(self.font, self.sizetopix(0, textheight)[1])
+        mfont = pygame.font.Font(self.font, area.sizetopix(0, textheight)[1])
         surftext = mfont.render(self.text, True, textcolor)
-        super(PgLabel, self).__init__(surftext, self.postopix(pos))
+        super(PgLabel, self).__init__(area, surftext, pos) #self.postopix(pos))
 
 
 class PgButton(PgWidget):
@@ -183,23 +192,24 @@ class PgButton(PgWidget):
     HOVERCOL = (100, 100, 100)
     TEXTCOL = (255, 255, 255)
     
-    def __init__(self, buttext, pos, textheight, font=None):
+    def __init__(self, area, buttext, pos, textheight, font=None):
         """Initialization:
-        
+
+        area -- ScreenArea instance
         buttext -- text of the button
-        pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
+        pos -- 2-length container, x y coordinates of the top-left corner of the surface in the ScreenArea frame 
         textheight -- height of the text in pixels
         font -- the used font (default none)
         """
         self.text = buttext
         self.font = font
         self.textheight = textheight
-        wgsurf = self.drawbutton(self.BGCOL)
-        super(PgButton, self).__init__(wgsurf, self.postopix(pos))
+        wgsurf = self.drawbutton(area, self.BGCOL)
+        super(PgButton, self).__init__(area, wgsurf, pos) #self.postopix(pos))
 
-    def drawbutton(self, bgc):
+    def drawbutton(self, scrarea, bgc):
         """creates the pygame.Surface instance with the text of the button"""
-        mfont = pygame.font.Font(self.font, self.sizetopix(0, self.textheight)[1])
+        mfont = pygame.font.Font(self.font, scrarea.sizetopix(0, self.textheight)[1])
         surftext = mfont.render(self.text, True, self.TEXTCOL)
         surfbutton = pygame.Surface([surftext.get_width(), surftext.get_height()])
         surfbutton.fill(bgc)
@@ -208,32 +218,30 @@ class PgButton(PgWidget):
 
     def switchbgcol(self, bgc):
         """switch toe color of the background of the surface (for highlight when the mouse enters)"""
-        self.image = self.drawbutton(bgc)
+        self.image = self.drawbutton(self.area, bgc)
         self.update = True
 
-    def show(self, ssrc, loadscreen=True):
+    def show(self, loadscreen=True):
         """override base method, draw the widget"""
         if loadscreen:
             self.switchbgcol(self.BGCOL)
-        super(PgButton, self).show(ssrc)
+        super(PgButton, self).show(False)
 
 
 class PgTextArea(PgWidget):
     """A textarea wigdet. Holds text, multiline, editable by the game
 
-    Child of PgWidget.
-    pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
-    textheight -- height of the text in pixels
-    font -- the used font (default none)
+    Child of PgWidget. Creates a Text Area.
+    write -- method used to update the text
     """
 
     TEXTCOL = (255, 255, 255)
     
-    def __init__(self, pos, textheight, itext=" ", font=None, textcolor=TEXTCOL):
+    def __init__(self, area, pos, textheight, itext=" ", font=None, textcolor=TEXTCOL):
         """Initialization:
-        
-        labtext -- text of the label
-        pos -- 2-length container, x y coordinates of the top-left corner of the to be created surface
+
+        area -- ScreenArea instance        
+        pos -- 2-length container, x y coordinates of the top-left corner of the surface in the ScreenArea frame 
         textheight -- height of the text in pixels
         itext -- text to display at the beginning (default to space).
         font -- the used font (default none)
@@ -243,7 +251,7 @@ class PgTextArea(PgWidget):
         self.textcolor = textcolor
         self.textheight = textheight
         self.font = font
-        super(PgTextArea, self).__init__(None, self.postopix(pos))
+        super(PgTextArea, self).__init__(area, None, pos) #area.postopix(pos))
         
     def write(self, txt):
         """Update the text and show it"""
@@ -251,5 +259,5 @@ class PgTextArea(PgWidget):
             self.text = " "
         else:
             self.text = txt
-        mfont = pygame.font.Font(self.font, self.sizetopix(0, self.textheight)[1])
+        mfont = pygame.font.Font(self.font, self.area.sizetopix(0, self.textheight)[1])
         self.image = mfont.render(self.text, True, self.textcolor)

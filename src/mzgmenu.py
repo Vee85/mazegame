@@ -35,7 +35,7 @@ import pygame.locals as pyloc
 
 import src
 from src.mzgwidgets import *
-from src.mzgscreen import InfoArea
+from src.mzgscreen import ScreenArea, InfoArea
 from src.mzgrooms import Maze
 
 
@@ -60,62 +60,65 @@ class TopLev:
         self.mlstop = False
         self.screen = screen
 
+        #area for the main menu
+        self.menuarea = ScreenArea(0, 0, 1000, 1000, 10, 10)
         #area where game info are shown
         self.ginfoarea = InfoArea(self.screen, 800, 0, 200, 800, 10, 10)
 
-        self.title = PgLabel("MAZEGAME", (300, 0), 100)        
+        self.title = PgLabel(self.menuarea, "MAZEGAME", (300, 0), 100)
 
-        self.newbutt = PgButton("New Game", (100, 150), 50)
+        self.newbutt = PgButton(self.menuarea, "New Game", (100, 150), 50)
         self.newbutt.connect(src.ONCLICKEVENT, lambda : self.show_menupage('ng'))
         self.newbutt.connect(src.ENTERINGEVENT, lambda : self.newbutt.switchbgcol(PgButton.HOVERCOL))
         self.newbutt.connect(src.EXITINGEVENT, lambda : self.newbutt.switchbgcol(PgButton.BGCOL))
 
-        self.loadbutt = PgButton("Load Game", (600, 150), 50)
+        self.loadbutt = PgButton(self.menuarea, "Load Game", (600, 150), 50)
         self.loadbutt.connect(src.ONCLICKEVENT, lambda : print(self.loadbutt.text))
         self.loadbutt.connect(src.ENTERINGEVENT, lambda : self.loadbutt.switchbgcol(PgButton.HOVERCOL))
         self.loadbutt.connect(src.EXITINGEVENT, lambda : self.loadbutt.switchbgcol(PgButton.BGCOL))
 
-        self.quitbutt = PgButton("Quit Game", (800, 950), 50)
+        self.quitbutt = PgButton(self.menuarea, "Quit Game", (800, 950), 50)
         self.quitbutt.connect(src.ONCLICKEVENT, lambda : sys.exit("Bye!"))
         self.quitbutt.connect(src.ENTERINGEVENT, lambda : self.quitbutt.switchbgcol(PgButton.HOVERCOL))
         self.quitbutt.connect(src.EXITINGEVENT, lambda : self.quitbutt.switchbgcol(PgButton.BGCOL))
 
-        self.ngtitle = PgLabel("Select the maze", (350, 0), 60)
+        self.ngtitle = PgLabel(self.menuarea, "Select the maze", (350, 0), 60)
 
-        self.backtomm = PgButton("Main Menu", (0, 950), 50)
+        self.backtomm = PgButton(self.menuarea, "Main Menu", (0, 950), 50)
         self.backtomm.connect(src.ONCLICKEVENT, lambda : self.show_menupage('main'))
         self.backtomm.connect(src.ENTERINGEVENT, lambda : self.backtomm.switchbgcol(PgButton.HOVERCOL))
         self.backtomm.connect(src.EXITINGEVENT, lambda : self.backtomm.switchbgcol(PgButton.BGCOL))
 
-        self.golab = PgLabel("GAME OVER!", (400, 400), 60)
-        self.gosublab = PgLabel("Do you want to continue?", (350, 500), 40)
+        self.golab = PgLabel(self.menuarea, "GAME OVER!", (400, 400), 60)
+        self.gosublab = PgLabel(self.menuarea, "Do you want to continue?", (350, 500), 40)
 
-        self.yesbutt = PgButton("YES", (350, 600), 40)
+        self.yesbutt = PgButton(self.menuarea, "YES", (350, 600), 40)
         self.yesbutt.connect(src.ONCLICKEVENT, self.continuegame)
         self.yesbutt.connect(src.ENTERINGEVENT, lambda : self.yesbutt.switchbgcol(PgButton.HOVERCOL))
         self.yesbutt.connect(src.EXITINGEVENT, lambda : self.yesbutt.switchbgcol(PgButton.BGCOL))
 
-        self.nobutt = PgButton("NO", (650, 600), 40)
+        self.nobutt = PgButton(self.menuarea, "NO", (650, 600), 40)
         self.nobutt.connect(src.ONCLICKEVENT, lambda : self.show_menupage('main'))
         self.nobutt.connect(src.ENTERINGEVENT, lambda : self.nobutt.switchbgcol(PgButton.HOVERCOL))
         self.nobutt.connect(src.EXITINGEVENT, lambda : self.nobutt.switchbgcol(PgButton.BGCOL))
 
     def show_menupage(self, page):
         """Call the proper function to show a page of the menu"""
-        PgWidget.hideall(self.screen, self.BGCOL)
+        PgWidget.hideall(self.menuarea, self.BGCOL)
         getattr(self, 'menupage_' + self.MENUPAGES[page])()
+        self.screen.blit(self.menuarea.image, self.menuarea.origin_area(np.array([0, 0])).get_rect())
 
     def menupage_main(self):
         """"Show the main menu page"""
-        self.title.show(self.screen)
-        self.newbutt.show(self.screen)
-        self.loadbutt.show(self.screen)
-        self.quitbutt.show(self.screen)
+        self.title.show()
+        self.newbutt.show()
+        self.loadbutt.show()
+        self.quitbutt.show()
 
     def menupage_newgame(self):
         """Show the menu page to choose a map"""
-        self.ngtitle.show(self.screen)
-        self.backtomm.show(self.screen)
+        self.ngtitle.show()
+        self.backtomm.show()
 
         filegames = os.listdir(GAME_DIR)
         validgames = [f for f in filegames if f.endswith("xml")]
@@ -123,19 +126,19 @@ class TopLev:
             raise RuntimeError("Error! No game available!")
 
         for n, fg in enumerate(sorted(validgames)):
-            gamebutt = PgButton(fg, (300, 100 + (n*60)), 50)
+            gamebutt = PgButton(self.menuarea, fg, (300, 100 + (n*60)), 50)
             gamebutt.connect(src.ONCLICKEVENT, lambda dfg=fg : self.selectgame(dfg))
             gamebutt.connect(src.ENTERINGEVENT, lambda bgc=PgButton.HOVERCOL, wgg=gamebutt : wgg.switchbgcol(bgc))
             gamebutt.connect(src.EXITINGEVENT, lambda bgc=PgButton.BGCOL, wgg=gamebutt : wgg.switchbgcol(bgc))
-            gamebutt.show(self.screen)
+            gamebutt.show()
 
     def menupage_gameover(self):
         """Show the game over page"""
-        self.golab.show(self.screen)
-        self.gosublab.show(self.screen)
-        self.yesbutt.show(self.screen)
-        self.nobutt.show(self.screen)
-        self.quitbutt.show(self.screen)
+        self.golab.show()
+        self.gosublab.show()
+        self.yesbutt.show()
+        self.nobutt.show()
+        self.quitbutt.show()
 
     def selectgame(self, filename):
         """Set the map filename"""
@@ -182,6 +185,7 @@ class TopLev:
 
             for ww in PgWidget.widget_list():
                 ww.wupdate(self.screen)
+                
             pygame.display.update()
             if self.mlstop:
                 break

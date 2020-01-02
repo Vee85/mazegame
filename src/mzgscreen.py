@@ -77,7 +77,7 @@ class ScreenArea(sprite.Sprite, src.PosManager):
     def origin_area(self, off):
         """Returns the FlRect of the original area mapping the ScreenArea"""
         coff = off * 1000
-        return src.FlRect(coff[0]-self._xmargin, coff[1]-self._ymargin, 1000+(2*self._xmargin), 1000+(2*self._ymargin))
+        return src.FlRect(coff[0]+self._xmargin, coff[1]+self._ymargin, 1000-(2*self._xmargin), 1000-(2*self._ymargin))
 
     def postopix(self, xoff, yoff, *pp):
         """Converts an absolute position from arbitrary units to pixel units"""
@@ -145,7 +145,7 @@ class InfoArea(ScreenArea):
         """Initialization, same parameters of InfoArea plus a given color for margins (gray)"""
         super(InfoArea, self).__init__(x, y, w, h, xm, ym, pygame.Color(100, 100, 100))
         self.screen = screen
-        self.postxt = PgTextArea((810, 10), 20)
+        self.postxt = PgTextArea(self, (810, 10), 20)
         self.postxt.show(self.screen)
 
     def updatepos(self, txt):
