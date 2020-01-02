@@ -51,13 +51,14 @@ class ScreenArea(sprite.Sprite, src.PosManager):
     Useful to define different rectangular sections of the screen (game area, info bars, and similar).
     """
 
-    def __init__(self, x, y, w, h, xm, ym):
+    def __init__(self, x, y, w, h, xm, ym, frame=None):
         """Initializator: unit is arbitrary, from 0 to 1000. Refers to the whole screen.
 
         - x and y are coordinates of the top-left corner
         - w, h are width and height of the rectangle
         - xm and ym are x and y margings, added to the 1000 unit base. They allow to show
-        the closest parts of the next offset 
+        the closest parts of the next offset
+        - frame: pygame.Color or None. If a color is given, the margins of the area are colored
         """
         super(ScreenArea, self).__init__()
         if x + w > 1000:
@@ -68,6 +69,10 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         self.image = pygame.Surface((w, h))
         self._xmargin = xm
         self._ymargin = ym
+        if frame is None or isinstance(frame, pygame.Color):
+            self._colorframe = frame
+        else:
+            raise ValueError("Error in defining ScreenArea margins, frame must be pygame.Color or None")
 
     def origin_area(self, off):
         """Returns the FlRect of the original area mapping the ScreenArea"""
@@ -119,6 +124,16 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         else:
             raise ValueError("Error, wrong pos argument in ScreenArea.corrpix")
 
+    def draw_margins(self):
+        """Draw colored margins"""
+        if self._colorframe is not None:
+            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(0, 0, self._xmargin, self.aurect.height))
+            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(self.aurect.width - self._xmargin, 0,
+                                self._xmargin, self.aurect.height))
+            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(0, 0, self.aurect.width, self._ymargin))
+            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(0, self.aurect.height - self._ymargin,
+                                 self.aurect.width, self._ymargin))
+
 
 class InfoArea(ScreenArea):
     """The infoarea container, to display game information to the player.
@@ -127,8 +142,8 @@ class InfoArea(ScreenArea):
     """
     
     def __init__(self, screen, x, y, w, h, xm, ym):
-        """Initialization, same parameters of InfoArea"""
-        super(InfoArea, self).__init__(x, y, w, h, xm, ym)
+        """Initialization, same parameters of InfoArea plus a given color for margins (gray)"""
+        super(InfoArea, self).__init__(x, y, w, h, xm, ym, pygame.Color(100, 100, 100))
         self.screen = screen
         self.postxt = PgTextArea((810, 10), 20)
         self.postxt.show(self.screen)
@@ -136,6 +151,8 @@ class InfoArea(ScreenArea):
     def updatepos(self, txt):
         """Update info on player position in the map when player moves""" 
         self.postxt.write(txt)
+        self.draw_margins()
+        self.screen.blit(self.image, self.aurect.get_rect())
         self.postxt.show(self.screen)
 
 

@@ -278,7 +278,7 @@ class WindAreainfo(Blockinfo):
         self.labelinfo.grid(row=3, column=0, columnspan=2, sticky="ew")
 
     def getinfo(self):
-        """Overriding method: return a list of the extra parameters"""
+        """Overriding method: return a dictiorary of the extra attributes"""
         vis = "true" if self.visvar.get() else "false"
         return {"compass-direction":str(self.winddir.get()), "strength":str(self.windstre.get()), "visible":vis}
 

@@ -472,7 +472,7 @@ class Key(Block):
         pygame.event.post(newev)
 
     def reprxml(self):
-        """Override method of base class, adding required subelements"""
+        """Override method of base class, adding extra attributes"""
         el = super(Key, self).reprxml()
         el.set("keyid", ";".join(map(str, self.whoopen)))
         return el
@@ -745,13 +745,14 @@ class Character(Block):
         self.ay = 0
 
     def reprxml(self):
+        """Override method of base class, adding extra attributes"""
         el = super(Character, self).reprxml()
         el.set("initialroom", str(self.cridx))
         return el
 
     @classmethod
     def reprxmlnew(cls, **kwargs):
-        """Override method, Character must not call this"""
+        """Override method to raise error, Character object must not call this"""
         raise NotImplementedError("Character do not need to be created by the editor")
 
     def update(self, xoff, yoff):
