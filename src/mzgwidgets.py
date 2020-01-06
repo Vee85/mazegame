@@ -84,7 +84,7 @@ class PgWidget(sprite.Sprite):
             raise ValueError("Wrong initialization surface for Widget!")
 
         self.pos = pos
-        self.rect = self.image.get_rect().move(self.pos)
+        self.rect = self.image.get_rect().move(self.area.postopix(0, 0, self.pos))
         self._shown = False
         self.allwidgets.add(self)
         self.connectedcalls = []
@@ -103,15 +103,18 @@ class PgWidget(sprite.Sprite):
             return PgWidget.allwidgets.sprites()
 
     def show(self, loadscreen=False):
-        """Blit the widget.
+        """Blit the widget on the ScreenArea image
         
         loadscreen -- boolean, useful for child classes who override this method
         """
-        self.area.image.blit(self.image, self.pos)
+        self.area.image.blit(self.image, self.rect)
         self._shown = True
 
     def wupdate(self, scrr):
-        """Update the widget"""
+        """Update the widget
+
+        srcc -- the pygame.display
+        """
         if self.update:
             self.show(False)
             self.update = False
@@ -179,7 +182,7 @@ class PgLabel(PgWidget):
         self.font = font
         mfont = pygame.font.Font(self.font, area.sizetopix(0, textheight)[1])
         surftext = mfont.render(self.text, True, textcolor)
-        super(PgLabel, self).__init__(area, surftext, pos) #self.postopix(pos))
+        super(PgLabel, self).__init__(area, surftext, area.postopix(0, 0, pos))
 
 
 class PgButton(PgWidget):
@@ -205,7 +208,7 @@ class PgButton(PgWidget):
         self.font = font
         self.textheight = textheight
         wgsurf = self.drawbutton(area, self.BGCOL)
-        super(PgButton, self).__init__(area, wgsurf, pos) #self.postopix(pos))
+        super(PgButton, self).__init__(area, wgsurf, area.postopix(0, 0, pos))
 
     def drawbutton(self, scrarea, bgc):
         """creates the pygame.Surface instance with the text of the button"""
@@ -251,7 +254,7 @@ class PgTextArea(PgWidget):
         self.textcolor = textcolor
         self.textheight = textheight
         self.font = font
-        super(PgTextArea, self).__init__(area, None, pos) #area.postopix(pos))
+        super(PgTextArea, self).__init__(area, None, area.postopix(0, 0, pos))
         
     def write(self, txt):
         """Update the text and show it"""

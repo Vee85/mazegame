@@ -66,18 +66,18 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         if y + h > 1000:
             raise ValueError("Error in defining ScreenArea position, y + h > 1000 is out of screen.")
         self.aurect = src.FlRect(x, y, w, h)
-        self.image = pygame.Surface((w, h))
+        # ~ self.image = pygame.Surface((w, h))
         self._xmargin = xm
         self._ymargin = ym
         if frame is None or isinstance(frame, pygame.Color):
-            self._colorframe = frame
+            self.colorframe = frame
         else:
             raise ValueError("Error in defining ScreenArea margins, frame must be pygame.Color or None")
 
     def origin_area(self, off):
-        """Returns the FlRect of the original area mapping the ScreenArea"""
+        """Returns the FlRect of the original area mapping the ScreenArea, off is a 2-length numpy array"""
         coff = off * 1000
-        return src.FlRect(coff[0]+self._xmargin, coff[1]+self._ymargin, 1000-(2*self._xmargin), 1000-(2*self._ymargin))
+        return src.FlRect(coff[0]-self._xmargin, coff[1]-self._ymargin, 1000+(2*self._xmargin), 1000+(2*self._ymargin))
 
     def postopix(self, xoff, yoff, *pp):
         """Converts an absolute position from arbitrary units to pixel units"""
@@ -124,15 +124,16 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         else:
             raise ValueError("Error, wrong pos argument in ScreenArea.corrpix")
 
-    def draw_margins(self):
-        """Draw colored margins"""
-        if self._colorframe is not None:
-            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(0, 0, self._xmargin, self.aurect.height))
-            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(self.aurect.width - self._xmargin, 0,
-                                self._xmargin, self.aurect.height))
-            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(0, 0, self.aurect.width, self._ymargin))
-            pygame.draw.rect(self.image, self._colorframe, pygame.Rect(0, self.aurect.height - self._ymargin,
-                                 self.aurect.width, self._ymargin))
+    def get_margins(self):
+        """It returns a tuple with 4 Rect instances corresponding to the margins"""
+        if self.colorframe is not None:
+            return (pygame.Rect(0, 0, self._xmargin, self.aurect.height),
+                    pygame.Rect(self.aurect.width - self._xmargin, 0, self._xmargin, self.aurect.height),
+                    pygame.Rect(0, 0, self.aurect.width, self._ymargin),
+                    pygame.Rect(0, self.aurect.height - self._ymargin, self.aurect.width, self._ymargin),
+                )
+        else:
+            return None
 
 
 class InfoArea(ScreenArea):
@@ -142,16 +143,15 @@ class InfoArea(ScreenArea):
     """
     
     def __init__(self, screen, x, y, w, h, xm, ym):
-        """Initialization, same parameters of InfoArea plus a given color for margins (gray)"""
+        """Initialization, same parameters of InfoArea plus the screen display and a given color for margins (gray)"""
         super(InfoArea, self).__init__(x, y, w, h, xm, ym, pygame.Color(100, 100, 100))
         self.screen = screen
-        self.postxt = PgTextArea(self, (810, 10), 20)
+        self.postxt = PgTextArea(self, (0, 0), 20)
         self.postxt.show(self.screen)
 
     def updatepos(self, txt):
         """Update info on player position in the map when player moves""" 
         self.postxt.write(txt)
-        self.draw_margins()
         self.screen.blit(self.image, self.aurect.get_rect())
         self.postxt.show(self.screen)
 

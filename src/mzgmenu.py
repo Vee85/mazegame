@@ -61,7 +61,7 @@ class TopLev:
         self.screen = screen
 
         #area for the main menu
-        self.menuarea = ScreenArea(0, 0, 1000, 1000, 10, 10)
+        self.menuarea = ScreenArea(0, 0, 1000, 1000, 20, 20)
         #area where game info are shown
         self.ginfoarea = InfoArea(self.screen, 800, 0, 200, 800, 10, 10)
 

@@ -74,7 +74,7 @@ def add_counter(cls):
     return cls
 
 
-class Block(sprite.Sprite, src.PosManager):
+class Block(sprite.Sprite):
     '''Common interface for all sprite block types.
 
     The methods are:
@@ -117,12 +117,10 @@ class Block(sprite.Sprite, src.PosManager):
         """Classmethod to use the correct recttopix method"""
         return cls.area.recttopix(rr, xoff, yoff)
 
-
     @classmethod
     def sizetopix(cls, rr):
         """Classmethod to use the correct sizetopix method"""
         return cls.area.sizetopix(rr)
-
 
     def fillimage(self):
         """Fill the image with the bg color or mosaic tile.
@@ -206,6 +204,7 @@ class Block(sprite.Sprite, src.PosManager):
         cls._idcounter = count(0)
 
     def blitinfo(self, *args):
+        """Blit additional informations as text on the block, used by the editor"""
         text = '.'.join(map(str, args))
         mfont = pygame.font.Font(None, 30)
         surftext = mfont.render(text, True, (255, 0, 0))
