@@ -2,8 +2,14 @@
 <Maze totalroom="1" xmlns="map-schema">
   <Room roomnumber="0">
     <Wall blockid="0" x="0" y="950" width="400" height="50"/>
-    <Wall blockid="1" x="300" y="500" width="100" height="100"/>
-    <Checkpoint blockid="0" x="150" y="850"/>
+    <Wall blockid="1" x="274" y="543" width="100" height="100"/>
+    <Checkpoint blockid="0" x="153" y="832"/>
+    <EnemyBot blockid="0" x="512" y="585">
+      <Marker blockid="0" x="513" y="638"/>
+      <Marker blockid="1" x="514" y="767"/>
+      <Marker blockid="2" x="671" y="768"/>
+      <Marker blockid="3" x="670" y="636"/>
+    </EnemyBot>
   </Room>
-  <Character blockid="0" x="100" y="600" initialroom="0"/>
+  <Character blockid="0" x="99" y="631" initialroom="0"/>
 </Maze>

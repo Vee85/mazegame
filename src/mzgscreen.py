@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  mzgscreen.py
@@ -66,7 +66,7 @@ class ScreenArea(sprite.Sprite, src.PosManager):
         if y + h > 1000:
             raise ValueError("Error in defining ScreenArea position, y + h > 1000 is out of screen.")
         self.aurect = src.FlRect(x, y, w, h)
-        # ~ self.image = pygame.Surface((w, h))
+        self.image = pygame.Surface((w, h))
         self._xmargin = xm
         self._ymargin = ym
         if frame is None or isinstance(frame, pygame.Color):
